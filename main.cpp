@@ -15,10 +15,6 @@ int main()
             {2, 2, 1, 2, {}, "", 0},
             {4, 1, 3, 3, {}, "", 0}
         };
-
-        // Inicializa tempoRestante
-        for(auto& t : tarefas)
-            t.tempoRestante = t.duracao;
     }
 
     srtf(tarefas);

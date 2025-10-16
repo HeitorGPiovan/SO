@@ -1,8 +1,10 @@
 #include "func.h"   
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <algorithm> 
 #include <iomanip>   
+
 
 int quantum;
 std::string algoritmo;
@@ -10,7 +12,6 @@ std::string algoritmo;
 void fifo(vector<Tarefa>& tarefas)
 {
     cout << "Executando FIFO..." << endl;
-    cout << "Executando FIFO com quantum 2..." << endl;
 
     // Ordena as tarefas pelo tempo de ingresso (ordem de chegada) usando std::sort
     sort(tarefas.begin(), tarefas.end(), [](const Tarefa& a, const Tarefa& b) {
@@ -81,7 +82,7 @@ void fifo(vector<Tarefa>& tarefas)
 
 void srtf(vector<Tarefa>& tarefas)
 {
-    cout << "Executando SRTF com quantum 2..." << endl;
+    cout << "Executando SRTF" << endl;
 
     // Cria uma cópia do vetor de tarefas para não modificar o original
     vector<Tarefa> tarefasPendentes = tarefas;
@@ -184,6 +185,8 @@ void srtf(vector<Tarefa>& tarefas)
 void priop(vector<Tarefa>& tarefas)
 {
     cout << "Executando PRIOP..." << endl;
+
+    
 }
 
 std::vector<Tarefa> carregarConfiguracao() {
