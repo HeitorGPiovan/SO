@@ -4,12 +4,9 @@
 
 using namespace std;
 
-int quantum;
-int algoritmo;
 
 int main()
 {
-    
     
     
     
