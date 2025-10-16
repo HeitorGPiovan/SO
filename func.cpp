@@ -81,7 +81,104 @@ void fifo(vector<Tarefa>& tarefas)
 
 void srtf(vector<Tarefa>& tarefas)
 {
-    cout << "Executando SRTF..." << endl;
+    cout << "Executando SRTF com quantum 2..." << endl;
+
+    // Cria uma cópia do vetor de tarefas para não modificar o original
+    vector<Tarefa> tarefasPendentes = tarefas;
+
+    // Ordena as tarefas pendentes pelo tempo de ingresso
+    sort(tarefasPendentes.begin(), tarefasPendentes.end(), [](const Tarefa& a, const Tarefa& b) {
+        return a.ingresso < b.ingresso;
+    });
+
+    for (auto& t : tarefasPendentes) {    // Inicializa o tempo restante para cada tarefa
+
+        t.tempoRestante = t.duracao;
+    }
+
+    // Inicializa variáveis
+    int tempoAtual = 0;
+    double esperaTotal = 0, retornoTotal = 0;
+
+    vector<Tarefa> pendentes = tarefasPendentes;    // Vetor para tarefas pendentes (ainda não chegadas)
+
+    vector<Tarefa> prontos;    // Vetor para tarefas prontas (chegadas e não concluídas)
+
+
+    cout << "\nOrdem de execucao (SRTF):\n";
+
+    while (!pendentes.empty() || !prontos.empty()) {    // Loop principal: continua enquanto houver tarefas pendentes ou prontas
+
+        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual) {        // Adiciona tarefas que chegaram ao tempo atual ao vetor de prontos
+
+            prontos.push_back(pendentes.front());
+            pendentes.erase(pendentes.begin());
+        }
+
+        if (prontos.empty()) {        // Se não houver tarefas prontas, avança para a próxima chegada
+
+            if (!pendentes.empty()) {
+                tempoAtual = pendentes.front().ingresso;
+            }
+            continue;
+        }
+
+        sort(prontos.begin(), prontos.end(), [](const Tarefa& a, const Tarefa& b) {        // Ordena as tarefas prontas pelo menor tempo restante (desempate por ingresso)
+
+            if (a.tempoRestante != b.tempoRestante) {
+                return a.tempoRestante < b.tempoRestante;
+            }
+            return a.ingresso < b.ingresso;
+        });
+
+        Tarefa& atual = prontos.front();        // Seleciona a tarefa atual (a com menor tempo restante)
+
+
+        int duracaoFatia = min(atual.tempoRestante, 2);        // Calcula a duração da fatia: mínimo entre o tempo restante e o quantum (2)
+
+
+        // Calcula início, fim, espera e retorno da fatia
+        int inicio = tempoAtual;
+        int fim = tempoAtual + duracaoFatia;
+        int espera = inicio - atual.ingresso;
+        int retorno = fim - atual.ingresso;
+
+        if (atual.tempoRestante == atual.duracao) {        // Soma espera apenas na primeira fatia da tarefa
+
+            esperaTotal += espera;
+        }
+
+        atual.tempoRestante -= duracaoFatia;        // Executa a fatia: reduz o tempo restante
+
+
+        // Imprime informações da fatia
+        cout << "Tarefa " << setw(2) << atual.id
+             << " | Ingresso: " << setw(2) << atual.ingresso
+             << " | Duracao fatia: " << setw(2) << duracaoFatia
+             << " | Inicio: " << setw(2) << inicio
+             << " | Fim: " << setw(2) << fim
+             << " | Espera: " << setw(2) << espera
+             << " | Retorno: " << setw(2) << retorno
+             << endl;
+
+        // Avança o tempo atual para o fim da fatia
+        tempoAtual = fim;
+
+        // Se a tarefa foi concluída, soma o retorno e remove da fila de prontos
+        if (atual.tempoRestante == 0) {
+            retornoTotal += retorno;
+            prontos.erase(prontos.begin());
+        }
+    }
+
+    int n = tarefas.size();    // Calcula o número de tarefas
+
+    cout << fixed << setprecision(2);    // Configura a saída para exibir números com 2 casas decimais
+
+    // Exibe os tempos médios de espera e retorno
+    cout << "\nTempo medio de espera: " << (esperaTotal / n)
+         << "\nTempo medio de retorno: " << (retornoTotal / n)
+         << endl;
 }
 
 void priop(vector<Tarefa>& tarefas)

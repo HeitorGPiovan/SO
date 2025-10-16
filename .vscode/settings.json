@@ -3,6 +3,9 @@
         "vector": "cpp",
         "iostream": "cpp",
         "algorithm": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "initializer_list": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp"
     }
 }

@@ -12,7 +12,7 @@ int main()
    if(tarefas.empty()) {
         tarefas = {
             {0, 5, 2, 1, {}, "", 0},
-            {2, 3, 1, 2, {}, "", 0},
+            {2, 2, 1, 2, {}, "", 0},
             {4, 1, 3, 3, {}, "", 0}
         };
 
@@ -21,7 +21,7 @@ int main()
             t.tempoRestante = t.duracao;
     }
 
-    fifo(tarefas);
+    srtf(tarefas);
     
     return 0;
 }
