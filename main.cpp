@@ -6,12 +6,20 @@ using namespace std;
 
 int main()
 {
+    // Carrega tarefas do arquivo configuracao.txt
+    vector<Tarefa> tarefas = carregarConfiguracao();
 
-    vector<Tarefa> tarefas = {
-        {0, 5, 2, 1, {}, "", 0},
-        {2, 3, 1, 2, {}, "", 0},
-        {4, 1, 3, 3, {}, "", 0}
-    };
+   if(tarefas.empty()) {
+        tarefas = {
+            {0, 5, 2, 1, {}, "", 0},
+            {2, 3, 1, 2, {}, "", 0},
+            {4, 1, 3, 3, {}, "", 0}
+        };
+
+        // Inicializa tempoRestante
+        for(auto& t : tarefas)
+            t.tempoRestante = t.duracao;
+    }
 
     fifo(tarefas);
     

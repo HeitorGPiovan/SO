@@ -11,5 +11,6 @@ void fifo(vector<Tarefa>& tarefas);
 void srtf(vector<Tarefa>& tarefas);
 void priop(vector<Tarefa>& tarefas);
 
+std::vector<Tarefa> carregarConfiguracao();
 
 #endif
