@@ -1,4 +1,6 @@
 #include "func.h"   
+#include <fstream>
+#include <sstream>
 #include <algorithm> 
 #include <iomanip>   
 
@@ -7,6 +9,7 @@ std::string algoritmo;
 
 void fifo(vector<Tarefa>& tarefas)
 {
+    cout << "Executando FIFO..." << endl;
     cout << "Executando FIFO com quantum 2..." << endl;
 
     // Ordena as tarefas pelo tempo de ingresso (ordem de chegada) usando std::sort
@@ -84,4 +87,54 @@ void srtf(vector<Tarefa>& tarefas)
 void priop(vector<Tarefa>& tarefas)
 {
     cout << "Executando PRIOP..." << endl;
+}
+
+std::vector<Tarefa> carregarConfiguracao() {
+    const std::string nomeArquivo = "configuracao.txt";
+    std::ifstream arquivo(nomeArquivo);
+    std::vector<Tarefa> tarefas;
+
+    if (!arquivo.is_open()) {
+        std::cerr << "Erro ao abrir arquivo: " << nomeArquivo << std::endl;
+        return tarefas;
+    }
+
+    std::string linha;
+    bool primeiraLinha = true;
+
+    while (std::getline(arquivo, linha)) {
+        if (linha.empty()) continue;
+
+        std::stringstream ss(linha);
+        std::string campo;
+
+        if (primeiraLinha) {
+            std::getline(ss, algoritmo, ';'); // Lê nome do algoritmo
+            std::getline(ss, campo, ';');
+            quantum = std::stoi(campo);       // Converte quantum para inteiro
+            primeiraLinha = false;
+        } else {
+            Tarefa t;
+            std::getline(ss, campo, ';'); t.id = std::stoi(campo);
+            std::getline(ss, t.cor, ';');
+            std::getline(ss, campo, ';'); t.ingresso = std::stoi(campo);
+            std::getline(ss, campo, ';'); t.duracao = std::stoi(campo);
+            std::getline(ss, campo, ';'); t.prioridade = std::stoi(campo);
+            std::getline(ss, campo, ';'); // Lista de eventos
+
+            // Divide lista de eventos por vírgula
+            std::stringstream eventosStream(campo);
+            std::string evento;
+            while (std::getline(eventosStream, evento, ',')) {
+                if (!evento.empty())
+                    t.eventos.push_back(std::stoi(evento));
+            }
+
+            t.tempoRestante = t.duracao;
+            tarefas.push_back(t);
+        }
+    }
+
+    arquivo.close();
+    return tarefas;
 }
