@@ -186,7 +186,99 @@ void priop(vector<Tarefa>& tarefas)
 {
     cout << "Executando PRIOP..." << endl;
 
-    
+    vector<Tarefa> tarefasPendentes = tarefas;
+
+    sort(tarefasPendentes.begin(), tarefasPendentes.end(), [](const Tarefa& a, const Tarefa& b) {
+        return a.ingresso < b.ingresso;
+    });
+
+    for (auto& t : tarefasPendentes) {
+        t.tempoRestante = t.duracao;
+    }
+
+    int tempoAtual = 0;
+    double esperaTotal = 0, retornoTotal = 0;
+
+    vector<Tarefa> pendentes = tarefasPendentes;
+    vector<Tarefa> prontos;
+
+    cout << "\nOrdem de execucao (PRIOP):\n";
+
+    while (!pendentes.empty() || !prontos.empty()) {
+        // Adiciona tarefas que chegaram ao tempo atual ao vetor de prontos
+        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual) {
+            prontos.push_back(pendentes.front());
+            pendentes.erase(pendentes.begin());
+        }
+
+        // Se não houver tarefas prontas, avança para a próxima chegada
+        if (prontos.empty()) {
+            if (!pendentes.empty()) {
+                tempoAtual = pendentes.front().ingresso;
+            }
+            continue;
+        }
+
+        // Ordena as tarefas prontas pela maior prioridade (menor valor de prioridade, desempate por ingresso)
+        sort(prontos.begin(), prontos.end(), [](const Tarefa& a, const Tarefa& b) {
+            if (a.prioridade != b.prioridade) {
+                return a.prioridade < b.prioridade;
+            }
+            return a.ingresso < b.ingresso;
+        });
+
+        // Seleciona a tarefa atual (a com maior prioridade)
+        Tarefa& atual = prontos.front();
+
+        // Calcula a duração da fatia: mínimo entre tempo restante, quantum (2) e próxima chegada
+        int duracaoFatia = atual.tempoRestante;
+        if (!pendentes.empty()) {
+            duracaoFatia = min(duracaoFatia, pendentes.front().ingresso - tempoAtual);
+        }
+        duracaoFatia = min(duracaoFatia, 2); // Limita ao quantum de 2 tempos
+
+        // Calcula início, fim, espera e retorno da fatia
+        int inicio = tempoAtual;
+        int fim = tempoAtual + duracaoFatia;
+        int espera = inicio - atual.ingresso;
+        int retorno = fim - atual.ingresso;
+
+        // Soma espera apenas na primeira fatia da tarefa
+        if (atual.tempoRestante == atual.duracao) {
+            esperaTotal += espera;
+        }
+
+        // Executa a fatia: reduz o tempo restante
+        atual.tempoRestante -= duracaoFatia;
+
+        // Imprime informações da fatia
+        cout << "Tarefa " << setw(2) << atual.id
+             << " | Ingresso: " << setw(2) << atual.ingresso
+             << " | Duracao fatia: " << setw(2) << duracaoFatia
+             << " | Inicio: " << setw(2) << inicio
+             << " | Fim: " << setw(2) << fim
+             << " | Espera: " << setw(2) << espera
+             << " | Retorno: " << setw(2) << retorno
+             << endl;
+
+        // Avança o tempo atual para o fim da fatia
+        tempoAtual = fim;
+
+        // Se a tarefa foi concluída, soma o retorno e remove da fila de prontos
+        if (atual.tempoRestante == 0) {
+            retornoTotal += retorno;
+            prontos.erase(prontos.begin());
+        }
+    }
+
+    // Calcula o número de tarefas
+    int n = tarefas.size();
+    // Configura a saída para exibir números com 2 casas decimais
+    cout << fixed << setprecision(2);
+    // Exibe os tempos médios de espera e retorno
+    cout << "\nTempo medio de espera: " << (esperaTotal / n)
+         << "\nTempo medio de retorno: " << (retornoTotal / n)
+         << endl;
 }
 
 std::vector<Tarefa> carregarConfiguracao() {
