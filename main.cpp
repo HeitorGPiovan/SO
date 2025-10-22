@@ -17,7 +17,7 @@ int main()
         };
     }
 
-    priop(tarefas);
+    fifo(tarefas);
     
     return 0;
 }
