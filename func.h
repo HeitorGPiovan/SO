@@ -14,3 +14,5 @@ void priop(vector<Tarefa>& tarefas);
 std::vector<Tarefa> carregarConfiguracao();
 
 #endif
+
+
