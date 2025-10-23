@@ -14,7 +14,7 @@ text { font-family: 'Segoe UI', sans-serif; }
 <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" stroke="none"/>
 </marker>
 </defs>
-<text x="700" y="30" class="titulo" text-anchor="middle">📊 Gráfico de Gantt - FIFO</text>
+<text x="700" y="30" class="titulo" text-anchor="middle">📊 Grafico de Gantt - SRTF</text>
 <line x1="80" y1="70" x2="1340" y2="70" class="eixo"/>
 <line x1="80" y1="62" x2="80" y2="78" class="eixo"/>
 <text x="80" y="92" class="tempo" text-anchor="middle">0</text>
@@ -53,21 +53,37 @@ text { font-family: 'Segoe UI', sans-serif; }
 <text x="1340" y="92" class="tempo" text-anchor="middle">11</text>
 <line x1="1340" y1="70" x2="1340" y2="90" class="grid"/>
 <text x="10" y="127" font-size="14px" font-weight="bold" fill="#2c3e50">T1</text>
-<rect x="80" y="105" width="572" height="35" rx="4" ry="4" fill="#FF6B6B" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
-<text x="366" y="127" class="tarefa">5</text>
+<rect x="80" y="105" width="114" height="35" rx="4" ry="4" fill="#FF6B6B" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="137" y="127" class="tarefa">1</text>
+<rect x="194" y="105" width="114" height="35" rx="4" ry="4" fill="#FF6B6B" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="251" y="127" class="tarefa">1</text>
+<rect x="538" y="105" width="114" height="35" rx="4" ry="4" fill="#FF6B6B" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="595" y="127" class="tarefa">1</text>
+<rect x="652" y="105" width="114" height="35" rx="4" ry="4" fill="#FF6B6B" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="709" y="127" class="tarefa">1</text>
+<rect x="767" y="105" width="114" height="35" rx="4" ry="4" fill="#FF6B6B" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="824" y="127" class="tarefa">1</text>
 <line x1="80" y1="142" x2="80" y2="152" class="ingresso"/>
 <text x="72" y="168" font-size="11px" fill="#e74c3c" text-anchor="end">↓ 0</text>
 <text x="10" y="172" font-size="14px" font-weight="bold" fill="#2c3e50">T2</text>
-<rect x="652" y="150" width="229" height="35" rx="4" ry="4" fill="#4ECDC4" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
-<text x="766" y="172" class="tarefa">2</text>
+<rect x="309" y="150" width="114" height="35" rx="4" ry="4" fill="#4ECDC4" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="366" y="172" class="tarefa">1</text>
+<rect x="423" y="150" width="114" height="35" rx="4" ry="4" fill="#4ECDC4" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="480" y="172" class="tarefa">1</text>
 <line x1="309" y1="187" x2="309" y2="197" class="ingresso"/>
 <text x="301" y="213" font-size="11px" fill="#e74c3c" text-anchor="end">↓ 2</text>
 <text x="10" y="217" font-size="14px" font-weight="bold" fill="#2c3e50">T3</text>
-<rect x="881" y="195" width="458" height="35" rx="4" ry="4" fill="#FFEAA7" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
-<text x="1110" y="217" class="tarefa">4</text>
+<rect x="881" y="195" width="114" height="35" rx="4" ry="4" fill="#FFEAA7" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="938" y="217" class="tarefa">1</text>
+<rect x="996" y="195" width="114" height="35" rx="4" ry="4" fill="#FFEAA7" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="1053" y="217" class="tarefa">1</text>
+<rect x="1110" y="195" width="114" height="35" rx="4" ry="4" fill="#FFEAA7" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="1167" y="217" class="tarefa">1</text>
+<rect x="1225" y="195" width="114" height="35" rx="4" ry="4" fill="#FFEAA7" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<text x="1282" y="217" class="tarefa">1</text>
 <line x1="652" y1="232" x2="652" y2="242" class="ingresso"/>
 <text x="644" y="258" font-size="11px" fill="#e74c3c" text-anchor="end">↓ 5</text>
 <text x="1355" y="103" font-size="14px" font-weight="bold" fill="#2c3e50">Legenda:</text>
-<text x="1355" y="120" font-size="12px" fill="#34495e">⬟ Fatias de execução</text>
+<text x="1355" y="120" font-size="12px" fill="#34495e">⬟ Fatias de execucao</text>
 <text x="1355" y="137" font-size="12px" fill="#e74c3c">⬇ Tempo de ingresso</text>
 </svg>
