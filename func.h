@@ -1,28 +1,29 @@
 #ifndef FUNC_H
 #define FUNC_H
 
-#include <iostream>
 #include <vector>
 #include <string>
-#include "tarefa.h"
-#include <climits>  // Para INT_MAX
 
-using namespace std;
+using std::vector;
+using std::string;
 
-struct FatiaTarefa {
-    int id;
-    int inicio;
-    int fim;
+struct Tarefa {
+    int ingresso;
     int duracao;
+    int prioridade;
+    int id;
+    vector<int> eventos;
+    string cor;
+    int tempoRestante;
 };
 
-std::string get_color_code(const std::string& cor);
-std::string get_hex_color(const std::string& cor);
-void print_gantt(const std::vector<Tarefa>& tarefas, const std::vector<int>& running_task, int current_time);
-void exportarGanttSVG(const std::vector<FatiaTarefa>& fatias, const std::vector<Tarefa>& tarefas, const std::string& nomeAlgoritmo);
+extern string modoExecucao;
+extern string algoritmo;
+extern int quantum;
+
+vector<Tarefa> carregarConfiguracao();
 void fifo(vector<Tarefa>& tarefas);
 void srtf(vector<Tarefa>& tarefas);
 void priop(vector<Tarefa>& tarefas);
-std::vector<Tarefa> carregarConfiguracao();
 
 #endif
