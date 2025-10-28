@@ -1,5 +1,4 @@
-PRIOP;2
-1;vermelho;0;5;2;
-2;verde;2;2;3;
-3;amarelo;5;4;1;
-4;azul;7;1;1;
+FIFO;2
+2;vermelho;0;5;3;
+1;verde;0;5;3;
+3;azul;0;5;3;

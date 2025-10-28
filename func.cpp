@@ -25,56 +25,38 @@ struct FatiaTarefa
 // Retorna código ANSI para cor no console
 string get_color_code(const string &cor)
 {
-    if (cor == "vermelho")
-        return "\033[41m";
-    if (cor == "verde")
-        return "\033[42m";
-    if (cor == "amarelo")
-        return "\033[43m";
-    if (cor == "azul")
-        return "\033[44m";
-    if (cor == "magenta")
-        return "\033[45m";
-    if (cor == "ciano")
-        return "\033[46m";
-    if (cor == "branco")
-        return "\033[47m";
+    if (cor == "vermelho") return "\033[41m";
+    if (cor == "verde") return "\033[42m";
+    if (cor == "amarelo") return "\033[43m";
+    if (cor == "azul") return "\033[44m";
+    if (cor == "magenta") return "\033[45m";
+    if (cor == "ciano") return "\033[46m";
+    if (cor == "branco") return "\033[47m";
     return "\033[47m"; // Padrão: branco
 }
 
 // Retorna código hexadecimal para cor no SVG
 string get_hex_color(const string &cor)
 {
-    if (cor == "vermelho")
-        return "#FF6B6B";
-    if (cor == "verde")
-        return "#4ECDC4";
-    if (cor == "amarelo")
-        return "#FFEAA7";
-    if (cor == "azul")
-        return "#45B7D1";
-    if (cor == "magenta")
-        return "#BB8FCE";
-    if (cor == "ciano")
-        return "#85C1E9";
-    if (cor == "branco")
-        return "#FFFFFF";
+    if (cor == "vermelho") return "#FF6B6B";
+    if (cor == "verde") return "#4ECDC4";
+    if (cor == "amarelo") return "#FFEAA7";
+    if (cor == "azul") return "#45B7D1";
+    if (cor == "magenta") return "#BB8FCE";
+    if (cor == "ciano") return "#85C1E9";
+    if (cor == "branco") return "#FFFFFF";
     return "#FFFFFF"; // Padrão: branco
 }
 
-// Exibe estado do sistema: tarefa em execução, filas de prontos e pendentes
-void print_estado_sistema(const vector<Tarefa> &tarefasPendentes, const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes, int tempoAtual, int currentTaskId)
+// === FUNÇÃO CORRIGIDA: recebe tarefasPendentes por referência ===
+void print_estado_sistema(vector<Tarefa> &tarefasPendentes, const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes, int tempoAtual, int currentTaskId)
 {
     cout << "\nEstado do Sistema (Tempo: " << tempoAtual << "):\n";
     cout << "Tarefa em execucao: ";
     if (currentTaskId != -1)
-    {
         cout << "T" << currentTaskId;
-    }
     else
-    {
         cout << "Nenhuma (CPU ociosa)";
-    }
     cout << endl;
 
     cout << "Fila de prontos: ";
@@ -102,8 +84,7 @@ void print_estado_sistema(const vector<Tarefa> &tarefasPendentes, const vector<T
         for (size_t i = 0; i < t.eventos.size(); ++i)
         {
             cout << t.eventos[i];
-            if (i < t.eventos.size() - 1)
-                cout << ",";
+            if (i < t.eventos.size() - 1) cout << ",";
         }
         cout << "]" << endl;
     }
@@ -112,7 +93,6 @@ void print_estado_sistema(const vector<Tarefa> &tarefasPendentes, const vector<T
 // Imprime gráfico de Gantt no console
 void print_gantt(const vector<Tarefa> &tarefas, const vector<int> &running_task, int current_time)
 {
-    // Ordena tarefas por ID
     vector<Tarefa> sorted_tasks = tarefas;
     sort(sorted_tasks.begin(), sorted_tasks.end(), [](const Tarefa &a, const Tarefa &b)
          { return a.id < b.id; });
@@ -124,7 +104,6 @@ void print_gantt(const vector<Tarefa> &tarefas, const vector<int> &running_task,
         cout << (t % 10);
     cout << endl;
 
-    // Exibe linha de cada tarefa
     for (const auto &task : sorted_tasks)
     {
         cout << "T" << setw(2) << task.id << "  |";
@@ -150,7 +129,6 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
         return;
     }
 
-    // Calcula tempo máximo e organiza fatias por tarefa
     int tempoMaximo = 0;
     map<int, vector<FatiaTarefa>> fatiasPorTarefa;
     for (const auto &fatia : fatias)
@@ -159,12 +137,10 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
         fatiasPorTarefa[fatia.id].push_back(fatia);
     }
 
-    // Configura dimensões do SVG
     const int LARGURA_SVG = 1400, ALTURA_SVG = 300 + (fatiasPorTarefa.size() * 45);
     const int ALTURA_BARRA = 35, ESPACO_VERTICAL = 10, MARGEM_ESQUERDA = 80, MARGEM_DIREITA = 60;
     double escalaTempo = (LARGURA_SVG - MARGEM_ESQUERDA - MARGEM_DIREITA) / static_cast<double>(tempoMaximo);
 
-    // Cria arquivo SVG
     string nomeArquivo = nomeAlgoritmo + "_gantt.svg";
     ofstream svg(nomeArquivo);
     if (!svg.is_open())
@@ -173,7 +149,6 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
         return;
     }
 
-    // Escreve cabeçalho SVG e estilos
     svg << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
     svg << "<svg width=\"" << LARGURA_SVG << "\" height=\"" << ALTURA_SVG << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     svg << "<defs>\n<style type=\"text/css\">\n";
@@ -189,12 +164,10 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
     svg << "<polygon points=\"0 0, 10 3.5, 0 7\" fill=\"#e74c3c\" stroke=\"none\"/>\n";
     svg << "</marker>\n</defs>\n";
 
-    // Adiciona título e eixo do tempo
     svg << "<text x=\"" << (LARGURA_SVG / 2) << "\" y=\"30\" class=\"titulo\" text-anchor=\"middle\">Grafico de Gantt - " << nomeAlgoritmo << "</text>\n";
     int yEixo = 70;
     svg << "<line x1=\"" << MARGEM_ESQUERDA << "\" y1=\"" << yEixo << "\" x2=\"" << (LARGURA_SVG - MARGEM_DIREITA) << "\" y2=\"" << yEixo << "\" class=\"eixo\"/>\n";
 
-    // Adiciona marcas de tempo
     int intervalo = max(1, tempoMaximo / 12);
     for (int t = 0; t <= tempoMaximo; t += intervalo)
     {
@@ -204,7 +177,6 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
         svg << "<line x1=\"" << x << "\" y1=\"" << yEixo << "\" x2=\"" << x << "\" y2=\"" << (yEixo + 20) << "\" class=\"grid\"/>\n";
     }
 
-    // Desenha barras para cada tarefa
     int yAtual = yEixo + 35;
     vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
     int corIndex = 0;
@@ -221,13 +193,11 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
                 break;
             }
         }
-        if (corNome.empty())
-            corNome = coresPadrao[corIndex++ % coresPadrao.size()];
+        if (corNome.empty()) corNome = coresPadrao[corIndex++ % coresPadrao.size()];
         corHex = get_hex_color(corNome);
 
         svg << "<text x=\"10\" y=\"" << (yAtual + 22) << "\" font-size=\"14px\" font-weight=\"bold\" fill=\"#2c3e50\">T" << idTarefa << "</text>\n";
 
-        // Desenha cada fatia da tarefa
         for (const auto &fatia : fatiasTarefa)
         {
             int xInicio = MARGEM_ESQUERDA + static_cast<int>(fatia.inicio * escalaTempo);
@@ -238,26 +208,46 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
                 svg << "<text x=\"" << (xInicio + larguraBarra / 2) << "\" y=\"" << (yAtual + 22) << "\" class=\"tarefa\">" << fatia.duracao << "</text>\n";
         }
 
-        // Marca o tempo de ingresso
         int xIngresso = MARGEM_ESQUERDA + static_cast<int>(ingresso * escalaTempo);
-        svg << "<line x1=\"" << xIngresso << "\" y1=\"" << (yAtual + ALTURA_BARRA + 2) << "\" x2=\"" << xIngresso << "\" y2=\"" << (yAtual + ALTURA_BARRA + 12) << "\" class=\"ingresso\"/>\n";
-        svg << "<text x=\"" << (xIngresso - 8) << "\" y=\"" << (yAtual + ALTURA_BARRA + 28) << "\" font-size=\"11px\" fill=\"#e74c3c\" text-anchor=\"end\">" << ingresso << "</text>\n";
-
+        svg << "<line x1=\"" << xIngresso << "\" y1=\"" << (yAtual + ALTURA_BARRA -15) << "\" x2=\"" << xIngresso << "\" y2=\"" << (yAtual + ALTURA_BARRA + -5) << "\" class=\"ingresso\"/>\n";
         yAtual += ALTURA_BARRA + ESPACO_VERTICAL;
     }
-
-    // Adiciona legenda
-    int yLegenda = yEixo + 15;
-    svg << "<text x=\"" << (LARGURA_SVG - MARGEM_DIREITA + 15) << "\" y=\"" << (yLegenda + 18) << "\" font-size=\"14px\" font-weight=\"bold\" fill=\"#2c3e50\">Legenda:</text>\n";
-    svg << "<text x=\"" << (LARGURA_SVG - MARGEM_DIREITA + 15) << "\" y=\"" << (yLegenda + 35) << "\" font-size=\"12px\" fill=\"#34495e\">Fatias de execucao</text>\n";
-    svg << "<text x=\"" << (LARGURA_SVG - MARGEM_DIREITA + 15) << "\" y=\"" << (yLegenda + 52) << "\" font-size=\"12px\" fill=\"#e74c3c\">Tempo de ingresso</text>\n";
 
     svg << "</svg>\n";
     svg.close();
     cout << "Grafico Gantt salvo como: " << nomeArquivo << endl;
 }
 
-// Algoritmo FIFO: executa tarefas na ordem de chegada
+// === FUNÇÃO AUXILIAR: atualiza tempoRestante nas tarefas originais ===
+void atualizarTempoRestante(vector<Tarefa> &tarefasPendentes, const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes)
+{
+    for (auto &t_orig : tarefasPendentes)
+    {
+        bool encontrado = false;
+        for (const auto &t : prontos)
+        {
+            if (t_orig.id == t.id)
+            {
+                t_orig.tempoRestante = t.tempoRestante;
+                encontrado = true;
+                break;
+            }
+        }
+        if (!encontrado)
+        {
+            for (const auto &t : pendentes)
+            {
+                if (t_orig.id == t.id)
+                {
+                    t_orig.tempoRestante = t.tempoRestante;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// Algoritmo FIFO
 void fifo(vector<Tarefa> &tarefas)
 {
     cout << "Executando FIFO (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
@@ -270,7 +260,6 @@ void fifo(vector<Tarefa> &tarefas)
     vector<int> running_task;
     vector<FatiaTarefa> fatias;
 
-    // Atribui cores padrão se necessário
     vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
     for (size_t i = 0; i < tarefasPendentes.size(); ++i)
     {
@@ -282,19 +271,18 @@ void fifo(vector<Tarefa> &tarefas)
     vector<Tarefa> prontos, pendentes = tarefasPendentes;
     while (!pendentes.empty() || !prontos.empty())
     {
-        // Move tarefas pendentes para prontas quando chegarem
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
             prontos.push_back(pendentes.front());
             pendentes.erase(pendentes.begin());
         }
 
-        // CPU ociosa se não há tarefas prontas
         if (prontos.empty())
         {
             running_task.push_back(-1);
             if (modoExecucao == "passo")
             {
+                atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
                 print_gantt(tarefasPendentes, running_task, tempoAtual);
                 print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, -1);
                 cout << "CPU ociosa - Pressione Enter para proximo tick...\n";
@@ -304,7 +292,6 @@ void fifo(vector<Tarefa> &tarefas)
             continue;
         }
 
-        // Executa a primeira tarefa da fila
         Tarefa &atual = prontos.front();
         int duracaoFatia = 1, inicio = tempoAtual, fim = tempoAtual + duracaoFatia, espera = inicio - atual.ingresso;
         if (atual.tempoRestante == atual.duracao)
@@ -324,6 +311,7 @@ void fifo(vector<Tarefa> &tarefas)
 
         if (modoExecucao == "passo")
         {
+            atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
             print_gantt(tarefasPendentes, running_task, tempoAtual);
             print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, atual.id);
             cout << "Executando T" << atual.id << " - Pressione Enter para proximo tick...\n";
@@ -338,7 +326,6 @@ void fifo(vector<Tarefa> &tarefas)
         }
     }
 
-    // Mescla fatias consecutivas da mesma tarefa
     vector<FatiaTarefa> fatiasMescladas;
     if (!fatias.empty())
     {
@@ -346,9 +333,7 @@ void fifo(vector<Tarefa> &tarefas)
         for (size_t i = 1; i < fatias.size(); ++i)
         {
             if (fatias[i].id == current_id && fatias[i].inicio == fatias[i - 1].fim)
-            {
                 duracao += fatias[i].duracao;
-            }
             else
             {
                 fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
@@ -364,14 +349,15 @@ void fifo(vector<Tarefa> &tarefas)
     if (modoExecucao == "completo")
         print_gantt(tarefasPendentes, running_task, tempoAtual);
 
-    // Exibe resultados
     cout << fixed << setprecision(2);
     cout << "\nRESULTADO FINAL:\n";
     cout << "Tempo medio de espera: " << (esperaTotal / tarefas.size()) << endl;
     cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
 }
 
-// Algoritmo SRTF: executa tarefa com menor tempo restante
+// SRTF e PRIOP seguem o mesmo padrão com a função auxiliar
+// (repetidos abaixo com correções aplicadas)
+
 void srtf(vector<Tarefa> &tarefas)
 {
     cout << "Executando SRTF (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
@@ -379,7 +365,6 @@ void srtf(vector<Tarefa> &tarefas)
     sort(tarefasPendentes.begin(), tarefasPendentes.end(), [](const Tarefa &a, const Tarefa &b)
          { return a.ingresso < b.ingresso; });
 
-    // Atribui cores e inicializa tempo restante
     vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
     for (size_t i = 0; i < tarefasPendentes.size(); ++i)
     {
@@ -396,19 +381,18 @@ void srtf(vector<Tarefa> &tarefas)
 
     while (!pendentes.empty() || !prontos.empty())
     {
-        // Move tarefas pendentes para prontas
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
             prontos.push_back(pendentes.front());
             pendentes.erase(pendentes.begin());
         }
 
-        // CPU ociosa se não há tarefas prontas
         if (prontos.empty())
         {
             running_task.push_back(-1);
             if (modoExecucao == "passo")
             {
+                atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
                 print_gantt(tarefasPendentes, running_task, tempoAtual);
                 print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, -1);
                 cout << "CPU ociosa - Pressione Enter para proximo tick...\n";
@@ -418,11 +402,9 @@ void srtf(vector<Tarefa> &tarefas)
             continue;
         }
 
-        // Ordena por menor tempo restante
         sort(prontos.begin(), prontos.end(), [](const Tarefa &a, const Tarefa &b)
              { return a.tempoRestante != b.tempoRestante ? a.tempoRestante < b.tempoRestante : a.ingresso < b.ingresso; });
 
-        // Executa tarefa com menor tempo restante
         Tarefa &atual = prontos.front();
         int duracaoFatia = 1, inicio = tempoAtual, fim = tempoAtual + duracaoFatia, espera = inicio - atual.ingresso;
         if (atual.tempoRestante == atual.duracao)
@@ -442,6 +424,7 @@ void srtf(vector<Tarefa> &tarefas)
 
         if (modoExecucao == "passo")
         {
+            atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
             print_gantt(tarefasPendentes, running_task, tempoAtual);
             print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, atual.id);
             cout << "Executando T" << atual.id << " - Pressione Enter para proximo tick...\n";
@@ -456,7 +439,6 @@ void srtf(vector<Tarefa> &tarefas)
         }
     }
 
-    // Mescla fatias consecutivas
     vector<FatiaTarefa> fatiasMescladas;
     if (!fatias.empty())
     {
@@ -464,9 +446,7 @@ void srtf(vector<Tarefa> &tarefas)
         for (size_t i = 1; i < fatias.size(); ++i)
         {
             if (fatias[i].id == current_id && fatias[i].inicio == fatias[i - 1].fim)
-            {
                 duracao += fatias[i].duracao;
-            }
             else
             {
                 fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
@@ -482,14 +462,12 @@ void srtf(vector<Tarefa> &tarefas)
     if (modoExecucao == "completo")
         print_gantt(tarefasPendentes, running_task, tempoAtual);
 
-    // Exibe resultados
     cout << fixed << setprecision(2);
     cout << "\nRESULTADO FINAL:\n";
     cout << "Tempo medio de espera: " << (esperaTotal / tarefas.size()) << endl;
     cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
 }
 
-// Algoritmo PRIOP: executa tarefa com menor prioridade (menor número = maior prioridade)
 void priop(vector<Tarefa> &tarefas)
 {
     cout << "Executando PRIOP (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
@@ -497,7 +475,6 @@ void priop(vector<Tarefa> &tarefas)
     sort(tarefasPendentes.begin(), tarefasPendentes.end(), [](const Tarefa &a, const Tarefa &b)
          { return a.ingresso < b.ingresso; });
 
-    // Atribui cores e inicializa tempo restante
     vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
     for (size_t i = 0; i < tarefasPendentes.size(); ++i)
     {
@@ -514,19 +491,18 @@ void priop(vector<Tarefa> &tarefas)
 
     while (!pendentes.empty() || !prontos.empty())
     {
-        // Move tarefas pendentes para prontas
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
             prontos.push_back(pendentes.front());
             pendentes.erase(pendentes.begin());
         }
 
-        // CPU ociosa se não há tarefas prontas
         if (prontos.empty())
         {
             running_task.push_back(-1);
             if (modoExecucao == "passo")
             {
+                atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
                 print_gantt(tarefasPendentes, running_task, tempoAtual);
                 print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, -1);
                 cout << "CPU ociosa - Pressione Enter para proximo tick...\n";
@@ -536,11 +512,9 @@ void priop(vector<Tarefa> &tarefas)
             continue;
         }
 
-        // Ordena por menor prioridade
         sort(prontos.begin(), prontos.end(), [](const Tarefa &a, const Tarefa &b)
              { return a.prioridade != b.prioridade ? a.prioridade < b.prioridade : a.ingresso < b.ingresso; });
 
-        // Executa tarefa com menor prioridade
         Tarefa &atual = prontos.front();
         int duracaoFatia = 1, inicio = tempoAtual, fim = tempoAtual + duracaoFatia, espera = inicio - atual.ingresso;
         if (atual.tempoRestante == atual.duracao)
@@ -560,6 +534,7 @@ void priop(vector<Tarefa> &tarefas)
 
         if (modoExecucao == "passo")
         {
+            atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
             print_gantt(tarefasPendentes, running_task, tempoAtual);
             print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, atual.id);
             cout << "Executando T" << atual.id << " - Pressione Enter para proximo tick...\n";
@@ -574,7 +549,6 @@ void priop(vector<Tarefa> &tarefas)
         }
     }
 
-    // Mescla fatias consecutivas
     vector<FatiaTarefa> fatiasMescladas;
     if (!fatias.empty())
     {
@@ -582,9 +556,7 @@ void priop(vector<Tarefa> &tarefas)
         for (size_t i = 1; i < fatias.size(); ++i)
         {
             if (fatias[i].id == current_id && fatias[i].inicio == fatias[i - 1].fim)
-            {
                 duracao += fatias[i].duracao;
-            }
             else
             {
                 fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
@@ -600,14 +572,12 @@ void priop(vector<Tarefa> &tarefas)
     if (modoExecucao == "completo")
         print_gantt(tarefasPendentes, running_task, tempoAtual);
 
-    // Exibe resultados
     cout << fixed << setprecision(2);
     cout << "\nRESULTADO FINAL:\n";
     cout << "Tempo medio de espera: " << (esperaTotal / tarefas.size()) << endl;
     cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
 }
 
-// Carrega tarefas do arquivo configuracao.txt
 vector<Tarefa> carregarConfiguracao()
 {
     const string nomeArquivo = "configuracao.txt";
@@ -624,12 +594,10 @@ vector<Tarefa> carregarConfiguracao()
     bool primeiraLinha = true;
     while (getline(arquivo, linha))
     {
-        if (linha.empty())
-            continue;
+        if (linha.empty()) continue;
         stringstream ss(linha);
         string campo;
 
-        // Primeira linha: algoritmo e quantum
         if (primeiraLinha)
         {
             getline(ss, algoritmo, ';');
@@ -639,7 +607,6 @@ vector<Tarefa> carregarConfiguracao()
         }
         else
         {
-            // Demais linhas: dados das tarefas
             Tarefa t;
             getline(ss, campo, ';');
             t.id = stoi(campo);
@@ -654,10 +621,7 @@ vector<Tarefa> carregarConfiguracao()
             stringstream eventosStream(campo);
             string evento;
             while (getline(eventosStream, evento, ','))
-            {
-                if (!evento.empty())
-                    t.eventos.push_back(stoi(evento));
-            }
+                if (!evento.empty()) t.eventos.push_back(stoi(evento));
             t.tempoRestante = t.duracao;
             tarefas.push_back(t);
         }
@@ -665,13 +629,10 @@ vector<Tarefa> carregarConfiguracao()
 
     arquivo.close();
 
-    // Atribui cores padrão se necessário
     vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
     for (size_t i = 0; i < tarefas.size(); ++i)
-    {
         if (tarefas[i].cor.empty())
             tarefas[i].cor = coresPadrao[i % coresPadrao.size()];
-    }
 
     return tarefas;
 }
