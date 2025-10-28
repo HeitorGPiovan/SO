@@ -23,7 +23,7 @@ int main() {
 
     if (tarefas.empty()) {
         tarefas = {
-            {0, 5, 2, 1, {}, "vermelho", 0},
+            {0, 3, 2, 1, {}, "vermelho", 0},
             {2, 2, 3, 2, {}, "verde", 0},
             {5, 4, 1, 3, {}, "amarelo", 0}
         };

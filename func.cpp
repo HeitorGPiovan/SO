@@ -297,14 +297,6 @@ void fifo(vector<Tarefa> &tarefas)
         if (atual.tempoRestante == atual.duracao)
             esperaTotal += espera;
 
-        if (modoExecucao == "passo")
-        {
-            cout << "Tarefa " << setw(2) << atual.id << " | Ingresso: " << setw(2) << atual.ingresso
-                 << " | Duracao fatia: " << setw(2) << duracaoFatia << " | Inicio: " << setw(2) << inicio
-                 << " | Fim: " << setw(2) << fim << " | Espera: " << setw(2) << espera
-                 << " | Retorno: " << setw(2) << (fim - atual.ingresso) << endl;
-        }
-
         running_task.push_back(atual.id);
         atual.tempoRestante -= duracaoFatia;
         fatias.push_back({atual.id, inicio, fim, duracaoFatia});
@@ -410,14 +402,6 @@ void srtf(vector<Tarefa> &tarefas)
         if (atual.tempoRestante == atual.duracao)
             esperaTotal += espera;
 
-        if (modoExecucao == "passo")
-        {
-            cout << "Tarefa " << setw(2) << atual.id << " | Ingresso: " << setw(2) << atual.ingresso
-                 << " | Duracao fatia: " << setw(2) << duracaoFatia << " | Inicio: " << setw(2) << inicio
-                 << " | Fim: " << setw(2) << fim << " | Espera: " << setw(2) << espera
-                 << " | Retorno: " << setw(2) << (fim - atual.ingresso) << endl;
-        }
-
         running_task.push_back(atual.id);
         atual.tempoRestante -= duracaoFatia;
         fatias.push_back({atual.id, inicio, fim, duracaoFatia});
@@ -519,14 +503,6 @@ void priop(vector<Tarefa> &tarefas)
         int duracaoFatia = 1, inicio = tempoAtual, fim = tempoAtual + duracaoFatia, espera = inicio - atual.ingresso;
         if (atual.tempoRestante == atual.duracao)
             esperaTotal += espera;
-
-        if (modoExecucao == "passo")
-        {
-            cout << "Tarefa " << setw(2) << atual.id << " | Ingresso: " << setw(2) << atual.ingresso
-                 << " | Duracao fatia: " << setw(2) << duracaoFatia << " | Inicio: " << setw(2) << inicio
-                 << " | Fim: " << setw(2) << fim << " | Espera: " << setw(2) << espera
-                 << " | Retorno: " << setw(2) << (fim - atual.ingresso) << endl;
-        }
 
         running_task.push_back(atual.id);
         atual.tempoRestante -= duracaoFatia;
