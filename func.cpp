@@ -8,21 +8,21 @@
 
 using namespace std;
 
-// Variáveis globais: configuram o escalonador
-int quantum;         // Quantum para algoritmos baseados em tempo
-string algoritmo;    // Algoritmo de escalonamento (FIFO, SRTF, PRIOP)
-string modoExecucao; // Modo de execução: "passo" ou "completo"
+// Variáveis globais de configuração
+int quantum;         // quantum para algoritmos preemptivos
+string algoritmo;    // nome do algoritmo (FIFO, SRTF, PRIOP)
+string modoExecucao; // "passo" ou "completo"
 
-// Estrutura para fatias de execução no gráfico de Gantt
+// Estrutura para fatias do gráfico de Gantt
 struct FatiaTarefa
 {
     int id;      // ID da tarefa
-    int inicio;  // Início da fatia
-    int fim;     // Fim da fatia
-    int duracao; // Duração da fatia
+    int inicio;  // tempo inicial da fatia
+    int fim;     // tempo final da fatia
+    int duracao; // duração da fatia
 };
 
-// Retorna código ANSI para cor no console
+// Retorna código ANSI para cor no terminal
 string get_color_code(const string &cor)
 {
     if (cor == "vermelho") return "\033[41m";
@@ -32,10 +32,10 @@ string get_color_code(const string &cor)
     if (cor == "magenta") return "\033[45m";
     if (cor == "ciano") return "\033[46m";
     if (cor == "branco") return "\033[47m";
-    return "\033[47m"; // Padrão: branco
+    return "\033[47m"; // padrão
 }
 
-// Retorna código hexadecimal para cor no SVG
+// Retorna cor em hexadecimal para SVG
 string get_hex_color(const string &cor)
 {
     if (cor == "vermelho") return "#FF6B6B";
@@ -45,10 +45,10 @@ string get_hex_color(const string &cor)
     if (cor == "magenta") return "#BB8FCE";
     if (cor == "ciano") return "#85C1E9";
     if (cor == "branco") return "#FFFFFF";
-    return "#FFFFFF"; // Padrão: branco
+    return "#FFFFFF"; // padrão
 }
 
-// === FUNÇÃO CORRIGIDA: recebe tarefasPendentes por referência ===
+// Exibe estado atual do sistema
 void print_estado_sistema(vector<Tarefa> &tarefasPendentes, const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes, int tempoAtual, int currentTaskId)
 {
     cout << "\nEstado do Sistema (Tempo: " << tempoAtual << "):\n";
@@ -218,7 +218,7 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
     cout << "Grafico Gantt salvo como: " << nomeArquivo << endl;
 }
 
-// === FUNÇÃO AUXILIAR: atualiza tempoRestante nas tarefas originais ===
+// Atualiza tempoRestante nas tarefas originais com base nas filas
 void atualizarTempoRestante(vector<Tarefa> &tarefasPendentes, const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes)
 {
     for (auto &t_orig : tarefasPendentes)
@@ -247,7 +247,7 @@ void atualizarTempoRestante(vector<Tarefa> &tarefasPendentes, const vector<Taref
     }
 }
 
-// Algoritmo FIFO
+// Algoritmo FIFO 
 void fifo(vector<Tarefa> &tarefas)
 {
     cout << "Executando FIFO (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
@@ -271,6 +271,7 @@ void fifo(vector<Tarefa> &tarefas)
     vector<Tarefa> prontos, pendentes = tarefasPendentes;
     while (!pendentes.empty() || !prontos.empty())
     {
+        // Move tarefas que chegaram para a fila de prontos
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
             prontos.push_back(pendentes.front());
@@ -318,6 +319,7 @@ void fifo(vector<Tarefa> &tarefas)
         }
     }
 
+    // Mescla fatias consecutivas da mesma tarefa
     vector<FatiaTarefa> fatiasMescladas;
     if (!fatias.empty())
     {
@@ -347,9 +349,7 @@ void fifo(vector<Tarefa> &tarefas)
     cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
 }
 
-// SRTF e PRIOP seguem o mesmo padrão com a função auxiliar
-// (repetidos abaixo com correções aplicadas)
-
+// SRTF
 void srtf(vector<Tarefa> &tarefas)
 {
     cout << "Executando SRTF (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
@@ -394,6 +394,7 @@ void srtf(vector<Tarefa> &tarefas)
             continue;
         }
 
+        // Ordena por menor tempo restante (desempate por ingresso)
         sort(prontos.begin(), prontos.end(), [](const Tarefa &a, const Tarefa &b)
              { return a.tempoRestante != b.tempoRestante ? a.tempoRestante < b.tempoRestante : a.ingresso < b.ingresso; });
 
@@ -452,6 +453,7 @@ void srtf(vector<Tarefa> &tarefas)
     cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
 }
 
+// PRIOP
 void priop(vector<Tarefa> &tarefas)
 {
     cout << "Executando PRIOP (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
@@ -496,6 +498,7 @@ void priop(vector<Tarefa> &tarefas)
             continue;
         }
 
+        // Ordena por maior prioridade (menor número = maior prioridade)
         sort(prontos.begin(), prontos.end(), [](const Tarefa &a, const Tarefa &b)
              { return a.prioridade != b.prioridade ? a.prioridade < b.prioridade : a.ingresso < b.ingresso; });
 
@@ -554,6 +557,7 @@ void priop(vector<Tarefa> &tarefas)
     cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
 }
 
+// Carrega configuração e tarefas do arquivo
 vector<Tarefa> carregarConfiguracao()
 {
     const string nomeArquivo = "configuracao.txt";

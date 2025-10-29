@@ -6,6 +6,7 @@ using namespace std;
 
 int main() {
     string modo;
+    //menu
     cout << "Selecione o modo de execucao:\n";
     cout << "1. Passo-a-passo\n";
     cout << "2. Completo\n";
@@ -21,6 +22,7 @@ int main() {
 
     vector<Tarefa> tarefas = carregarConfiguracao();
 
+    //sugestao de parametros padrao
     if (tarefas.empty()) {
         tarefas = {
             {0, 3, 2, 1, {}, "vermelho", 0},
