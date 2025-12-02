@@ -65,23 +65,23 @@ text { font-family: 'Segoe UI', sans-serif; }
 <text x="1340" y="92" class="tempo" text-anchor="middle">15</text>
 <line x1="1340" y1="70" x2="1340" y2="90" class="grid"/>
 <text x="10" y="127" font-size="14px" font-weight="bold" fill="#2c3e50">T1</text>
-<rect x="80" y="105" width="420" height="35" rx="4" ry="4" fill="#FF6B6B" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<rect x="80" y="105" width="420" height="35" rx="4" ry="4" fill="#E74C3C" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
 <text x="290" y="127" class="tarefa">5</text>
 <line x1="80" y1="125" x2="80" y2="135" class="ingresso"/>
 <text x="10" y="172" font-size="14px" font-weight="bold" fill="#2c3e50">T2</text>
-<rect x="752" y="150" width="168" height="35" rx="4" ry="4" fill="#4ECDC4" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<rect x="752" y="150" width="168" height="35" rx="4" ry="4" fill="#27AE60" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
 <text x="836" y="172" class="tarefa">2</text>
 <line x1="248" y1="170" x2="248" y2="180" class="ingresso"/>
 <text x="10" y="217" font-size="14px" font-weight="bold" fill="#2c3e50">T3</text>
-<rect x="920" y="195" width="336" height="35" rx="4" ry="4" fill="#FFEAA7" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<rect x="920" y="195" width="336" height="35" rx="4" ry="4" fill="#F1C40F" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
 <text x="1088" y="217" class="tarefa">4</text>
 <line x1="500" y1="215" x2="500" y2="225" class="ingresso"/>
 <text x="10" y="262" font-size="14px" font-weight="bold" fill="#2c3e50">T4</text>
-<rect x="1256" y="240" width="84" height="35" rx="4" ry="4" fill="#45B7D1" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<rect x="1256" y="240" width="84" height="35" rx="4" ry="4" fill="#3498DB" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
 <text x="1298" y="262" class="tarefa">1</text>
 <line x1="668" y1="260" x2="668" y2="270" class="ingresso"/>
 <text x="10" y="307" font-size="14px" font-weight="bold" fill="#2c3e50">T5</text>
-<rect x="500" y="285" width="252" height="35" rx="4" ry="4" fill="#BB8FCE" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
+<rect x="500" y="285" width="252" height="35" rx="4" ry="4" fill="#9B59B6" stroke="#2c3e50" stroke-width="1.5" opacity="0.95"/>
 <text x="626" y="307" class="tarefa">3</text>
 <line x1="164" y1="305" x2="164" y2="315" class="ingresso"/>
 </svg>

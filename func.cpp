@@ -22,30 +22,47 @@ struct FatiaTarefa
     int duracao; // duração da fatia
 };
 
-// Retorna código ANSI para cor no terminal
-string get_color_code(const string &cor)
+
+// 1. Função que retorna código ANSI para cor no terminal (aproximado)
+
+string get_color_code(const string& cor)
 {
-    if (cor == "vermelho") return "\033[41m";
-    if (cor == "verde") return "\033[42m";
-    if (cor == "amarelo") return "\033[43m";
-    if (cor == "azul") return "\033[44m";
-    if (cor == "magenta") return "\033[45m";
-    if (cor == "ciano") return "\033[46m";
-    if (cor == "branco") return "\033[47m";
-    return "\033[47m"; // padrão
+    string hex = cor;
+    if (hex.empty()) return "\033[47m";
+    if (hex[0] == '#') hex = hex.substr(1);
+    if (hex.length() != 6) return "\033[47m";
+
+    try {
+        int r = stoi(hex.substr(0,2), nullptr, 16);
+        int g = stoi(hex.substr(2,2), nullptr, 16);
+        int b = stoi(hex.substr(4,2), nullptr, 16);
+
+        char buf[32];
+        snprintf(buf, sizeof(buf), "\033[48;2;%d;%d;%dm", r, g, b);
+        return buf;
+    } catch (...) {
+        return "\033[47m";
+    }
 }
 
 // Retorna cor em hexadecimal para SVG
 string get_hex_color(const string &cor)
 {
-    if (cor == "vermelho") return "#FF6B6B";
-    if (cor == "verde") return "#4ECDC4";
-    if (cor == "amarelo") return "#FFEAA7";
-    if (cor == "azul") return "#45B7D1";
-    if (cor == "magenta") return "#BB8FCE";
-    if (cor == "ciano") return "#85C1E9";
-    if (cor == "branco") return "#FFFFFF";
-    return "#FFFFFF"; // padrão
+    string hex = cor;
+    if (hex.empty()) return "#BDC3C7";   // cinza neutro como fallback
+
+    // Aceita com ou sem #
+    if (hex[0] == '#') {
+        hex = hex.substr(1);
+    }
+
+    // Se já tem 6 dígitos hexadecimais válidos → retorna com #
+    if (hex.length() == 6 && all_of(hex.begin(), hex.end(), ::isxdigit)) {
+        return "#" + hex;
+    }
+
+    // Fallback final caso a cor seja inválida
+    return "#95A5A6";
 }
 
 // Exibe estado atual do sistema
@@ -184,7 +201,7 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
     }
 
     int yAtual = yEixo + 35;
-    vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
+    vector<string> coresPadrao = {"E74C3C", "27AE60", "F1C40F", "3498DB", "9B59B6"};
     int corIndex = 0;
     for (const auto &[idTarefa, fatiasTarefa] : fatiasPorTarefa)
     {
@@ -270,7 +287,8 @@ vector<Tarefa> carregarConfiguracao()
     bool primeiraLinha = true;
     while (getline(arquivo, linha))
     {
-        if (linha.empty()) continue;
+        if (linha.empty() || linha[0] == '#') continue; // permite comentários
+
         stringstream ss(linha);
         string campo;
 
@@ -280,39 +298,46 @@ vector<Tarefa> carregarConfiguracao()
             getline(ss, campo, ';');
             quantum = stoi(campo);
             primeiraLinha = false;
+            continue;
         }
-        else
+
+        Tarefa t = {};
+        // ID
+        getline(ss, campo, ';');
+        t.id = stoi(campo);
+
+        // COR → agora aceita #RRGGBB ou RRGGBB
+        getline(ss, t.cor, ';');
+
+        // Ingresso
+        getline(ss, campo, ';');
+        t.ingresso = stoi(campo);
+
+        // Duração
+        getline(ss, campo, ';');
+        t.duracao = stoi(campo);
+
+        // Prioridade
+        getline(ss, campo, ';');
+        t.prioridade = stoi(campo);
+
+        // Eventos (pode estar vazio)
+        string eventosStr;
+        getline(ss, eventosStr, ';');
+        stringstream eventosStream(eventosStr);
+        string ev;
+        while (getline(eventosStream, ev, ','))
         {
-            Tarefa t;
-            getline(ss, campo, ';');
-            t.id = stoi(campo);
-            getline(ss, t.cor, ';');
-            getline(ss, campo, ';');
-            t.ingresso = stoi(campo);
-            getline(ss, campo, ';');
-            t.duracao = stoi(campo);
-            getline(ss, campo, ';');
-            t.prioridade = stoi(campo);
-            getline(ss, campo, ';');
-            stringstream eventosStream(campo);
-            string evento;
-            while (getline(eventosStream, evento, ','))
-                if (!evento.empty()) t.eventos.push_back(stoi(evento));
-            t.tempoRestante = t.duracao;
-            tarefas.push_back(t);
+            if (!ev.empty()) t.eventos.push_back(stoi(ev));
         }
+
+        t.tempoRestante = t.duracao;
+        tarefas.push_back(t);
     }
 
     arquivo.close();
-
-    vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
-    for (size_t i = 0; i < tarefas.size(); ++i)
-        if (tarefas[i].cor.empty())
-            tarefas[i].cor = coresPadrao[i % coresPadrao.size()];
-
     return tarefas;
 }
-
 
 void simulador(vector<Tarefa> &tarefasOriginais)
 {
