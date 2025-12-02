@@ -22,8 +22,6 @@ extern string algoritmo;
 extern int quantum;
 
 vector<Tarefa> carregarConfiguracao(); //usada para carregar os parametros escolhidos pelo usuario a partir de um arquivo txt
-void fifo(vector<Tarefa>& tarefas);
-void srtf(vector<Tarefa>& tarefas);
-void priop(vector<Tarefa>& tarefas);
+void simulate(vector<Tarefa>& tarefas);
 
 #endif
