@@ -31,16 +31,7 @@ int main() {
         };
     }
 
-    if (algoritmo == "FIFO") {
-        fifo(tarefas);
-    } else if (algoritmo == "SRTF") {
-        srtf(tarefas);
-    } else if (algoritmo == "PRIOP") {
-        priop(tarefas);
-    } else {
-        cerr << "Algoritmo desconhecido: " << algoritmo << ". Usando SRTF.\n";
-        srtf(tarefas);
-    }
+    simulador(tarefas);
 
     return 0;
 }

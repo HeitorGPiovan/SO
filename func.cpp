@@ -253,356 +253,6 @@ void atualizarTempoRestante(vector<Tarefa> &tarefasPendentes, const vector<Taref
     }
 }
 
-// Algoritmo FIFO 
-void fifo(vector<Tarefa> &tarefas)
-{
-    cout << "Executando FIFO (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
-
-    //ordena por ordem de ingresso
-    sort(tarefas.begin(), tarefas.end(), [](const Tarefa &a, const Tarefa &b) 
-         { return a.ingresso < b.ingresso; });
-
-    int tempoAtual = 0;
-    double esperaTotal = 0, retornoTotal = 0;
-    vector<Tarefa> tarefasPendentes = tarefas;
-    vector<int> running_task;
-    vector<FatiaTarefa> fatias;
-
-    //inicializa cores e tempo restante
-    vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
-    for (size_t i = 0; i < tarefasPendentes.size(); ++i)
-    {
-        if (tarefasPendentes[i].cor.empty())
-            tarefasPendentes[i].cor = coresPadrao[i % coresPadrao.size()];
-        tarefasPendentes[i].tempoRestante = tarefasPendentes[i].duracao;
-    }
-
-    //vector auxiliares para controle
-    vector<Tarefa> prontos, pendentes = tarefasPendentes;
-    
-    //enquanto existirem tarefas a serem executadas
-    while (!pendentes.empty() || !prontos.empty())
-    {
-        // Move tarefas que chegaram para a fila de prontos
-        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
-        {
-            prontos.push_back(pendentes.front());
-            pendentes.erase(pendentes.begin());
-        }
-
-        //se não tiver tarefas executando (CPU ociosa)
-        if (prontos.empty())
-        {
-            running_task.push_back(-1);
-            if (modoExecucao == "passo")
-            {
-                atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
-                print_gantt(tarefasPendentes, running_task, tempoAtual);
-                print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, -1);
-                cout << "CPU ociosa - Pressione Enter para proximo tick...\n";
-                cin.get();
-            }
-            tempoAtual++;
-            continue;
-        }
-
-        //executa um tick da tarefa do inicio da fila
-        Tarefa &atual = prontos.front();
-        int duracaoFatia = 1, inicio = tempoAtual, fim = tempoAtual + duracaoFatia, espera = inicio - atual.ingresso;
-
-        //calcula a espera
-        if (atual.tempoRestante == atual.duracao)
-            esperaTotal += espera;
-
-        //registra a execução    
-        running_task.push_back(atual.id);
-        atual.tempoRestante -= duracaoFatia;
-        fatias.push_back({atual.id, inicio, fim, duracaoFatia});
-
-        //executa no modo passo a passo
-        if (modoExecucao == "passo")
-        {
-            atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
-            print_gantt(tarefasPendentes, running_task, tempoAtual);
-            print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, atual.id);
-            cout << "Executando T" << atual.id << " - Pressione Enter para proximo tick...\n";
-            cin.get();
-        }
-
-       //avança o tempo e verifica término
-        tempoAtual = fim;
-        if (atual.tempoRestante <= 0)
-        {
-            retornoTotal += (tempoAtual - atual.ingresso);
-            prontos.erase(prontos.begin());
-        }
-    }
-
-    // Mescla fatias consecutivas da mesma tarefa para o SVG
-    vector<FatiaTarefa> fatiasMescladas;
-    if (!fatias.empty())
-    {
-        int current_id = fatias[0].id, inicio = fatias[0].inicio, duracao = fatias[0].duracao;
-        for (size_t i = 1; i < fatias.size(); ++i)
-        {
-            if (fatias[i].id == current_id && fatias[i].inicio == fatias[i - 1].fim)
-                duracao += fatias[i].duracao;
-            else
-            {
-                fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
-                current_id = fatias[i].id;
-                inicio = fatias[i].inicio;
-                duracao = fatias[i].duracao;
-            }
-        }
-        fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
-    }
-
-    exportarGanttSVG(fatiasMescladas, tarefasPendentes, "FIFO"); //exporta imagem
-
-    if (modoExecucao == "completo")
-        print_gantt(tarefasPendentes, running_task, tempoAtual); //mostra o gráfico de gantt completo
-
-    cout << fixed << setprecision(2);
-    cout << "\nRESULTADO FINAL:\n";
-    cout << "Tempo medio de espera: " << (esperaTotal / tarefas.size()) << endl;
-    cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
-}
-
-// SRTF
-void srtf(vector<Tarefa> &tarefas)
-{
-    cout << "Executando SRTF (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
-    vector<Tarefa> tarefasPendentes = tarefas;
-
-    //ordena por ingresso
-    sort(tarefasPendentes.begin(), tarefasPendentes.end(), [](const Tarefa &a, const Tarefa &b)
-         { return a.ingresso < b.ingresso; });
-
-    //inicializa cores e tempo restante
-    vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
-    for (size_t i = 0; i < tarefasPendentes.size(); ++i)
-    {   
-        if (tarefasPendentes[i].cor.empty())
-            tarefasPendentes[i].cor = coresPadrao[i % coresPadrao.size()];
-        tarefasPendentes[i].tempoRestante = tarefasPendentes[i].duracao;
-    }
-
-    int tempoAtual = 0;
-    double esperaTotal = 0, retornoTotal = 0;
-    vector<Tarefa> pendentes = tarefasPendentes, prontos;
-    vector<int> running_task;
-    vector<FatiaTarefa> fatias;
-
-    //enquanto existirem tarefas a serem executadas
-    while (!pendentes.empty() || !prontos.empty())
-    {
-        //Move tarefas que chegaram para a fila de prontos
-        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
-        {
-            prontos.push_back(pendentes.front());
-            pendentes.erase(pendentes.begin());
-        }
-        //se a CPU estiver ociosa
-        if (prontos.empty())
-        {
-            running_task.push_back(-1);
-            if (modoExecucao == "passo")
-            {
-                atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
-                print_gantt(tarefasPendentes, running_task, tempoAtual);
-                print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, -1);
-                cout << "CPU ociosa - Pressione Enter para proximo tick...\n";
-                cin.get();
-            }
-            tempoAtual++;
-            continue;
-        }
-
-        // Ordena por menor tempo restante (desempate por ingresso)
-        sort(prontos.begin(), prontos.end(), [](const Tarefa &a, const Tarefa &b)
-             { return a.tempoRestante != b.tempoRestante ? a.tempoRestante < b.tempoRestante : a.ingresso < b.ingresso; });
-
-        // Executa 1 tick da menor tarefa
-        Tarefa &atual = prontos.front();
-        int duracaoFatia = 1, inicio = tempoAtual, fim = tempoAtual + duracaoFatia, espera = inicio - atual.ingresso;
-
-        //calcula o tempo de espera
-        if (atual.tempoRestante == atual.duracao)
-            esperaTotal += espera;
-
-        //registra a execução
-        running_task.push_back(atual.id);
-        atual.tempoRestante -= duracaoFatia;
-        fatias.push_back({atual.id, inicio, fim, duracaoFatia});
-
-        //executa no modo passo a passo
-        if (modoExecucao == "passo")
-        {
-            atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
-            print_gantt(tarefasPendentes, running_task, tempoAtual);
-            print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, atual.id);
-            cout << "Executando T" << atual.id << " - Pressione Enter para proximo tick...\n";
-            cin.get();
-        }
-
-        //avança o tempo e verifica término
-        tempoAtual = fim;
-        if (atual.tempoRestante <= 0)
-        {
-            retornoTotal += (tempoAtual - atual.ingresso);
-            prontos.erase(prontos.begin());
-        }
-    }
-
-    //Mescla fatias consecutivas da mesma tarefa para o SVG
-    vector<FatiaTarefa> fatiasMescladas;
-    if (!fatias.empty())
-    {
-        int current_id = fatias[0].id, inicio = fatias[0].inicio, duracao = fatias[0].duracao;
-        for (size_t i = 1; i < fatias.size(); ++i)
-        {
-            if (fatias[i].id == current_id && fatias[i].inicio == fatias[i - 1].fim)
-                duracao += fatias[i].duracao;
-            else
-            {
-                fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
-                current_id = fatias[i].id;
-                inicio = fatias[i].inicio;
-                duracao = fatias[i].duracao;
-            }
-        }
-        fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
-    }
-
-    exportarGanttSVG(fatiasMescladas, tarefasPendentes, "SRTF"); //exporta a imagem
-
-    if (modoExecucao == "completo")
-        print_gantt(tarefasPendentes, running_task, tempoAtual); //mostra o gráfico de gantt completo
-
-    cout << fixed << setprecision(2);
-    cout << "\nRESULTADO FINAL:\n";
-    cout << "Tempo medio de espera: " << (esperaTotal / tarefas.size()) << endl;
-    cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
-}
-
-// PRIOP
-void priop(vector<Tarefa> &tarefas)
-{
-    cout << "Executando PRIOP (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
-    vector<Tarefa> tarefasPendentes = tarefas;
-
-    //ordena por ordem de ingresso
-    sort(tarefasPendentes.begin(), tarefasPendentes.end(), [](const Tarefa &a, const Tarefa &b)
-         { return a.ingresso < b.ingresso; });
-
-    //inicializa cores e tempo restante
-    vector<string> coresPadrao = {"vermelho", "verde", "amarelo", "azul", "magenta", "ciano", "branco"};
-    for (size_t i = 0; i < tarefasPendentes.size(); ++i)
-    {
-        if (tarefasPendentes[i].cor.empty())
-            tarefasPendentes[i].cor = coresPadrao[i % coresPadrao.size()];
-        tarefasPendentes[i].tempoRestante = tarefasPendentes[i].duracao;
-    }
-
-    int tempoAtual = 0;
-    double esperaTotal = 0, retornoTotal = 0;
-    vector<Tarefa> pendentes = tarefasPendentes, prontos;
-    vector<int> running_task;
-    vector<FatiaTarefa> fatias;
-
-    //enquanto existirem tarefas a serem executadas
-    while (!pendentes.empty() || !prontos.empty())
-    {
-        //Move tarefas que chegaram para a fila de prontos
-        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
-        {
-            prontos.push_back(pendentes.front());
-            pendentes.erase(pendentes.begin());
-        }
-        //se a CPU estiver ociosa
-        if (prontos.empty())
-        {
-            running_task.push_back(-1);
-            if (modoExecucao == "passo")
-            {
-                atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
-                print_gantt(tarefasPendentes, running_task, tempoAtual);
-                print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, -1);
-                cout << "CPU ociosa - Pressione Enter para proximo tick...\n";
-                cin.get();
-            }
-            tempoAtual++;
-            continue;
-        }
-
-        // Ordena por maior prioridade (menor número = maior prioridade) (desempate por menor ingresso)
-        sort(prontos.begin(), prontos.end(), [](const Tarefa &a, const Tarefa &b)
-             { return a.prioridade != b.prioridade ? a.prioridade < b.prioridade : a.ingresso < b.ingresso; });
-
-        //Executa 1 tick da tarefa de maior prioridade
-        Tarefa &atual = prontos.front();
-        int duracaoFatia = 1, inicio = tempoAtual, fim = tempoAtual + duracaoFatia, espera = inicio - atual.ingresso;
-
-        //Calcula o tempo de espera
-        if (atual.tempoRestante == atual.duracao)
-            esperaTotal += espera;
-
-        //Registra a execução
-        running_task.push_back(atual.id);
-        atual.tempoRestante -= duracaoFatia;
-        fatias.push_back({atual.id, inicio, fim, duracaoFatia});
-
-        //executa no modo passo a passo
-        if (modoExecucao == "passo")
-        {
-            atualizarTempoRestante(tarefasPendentes, prontos, pendentes);
-            print_gantt(tarefasPendentes, running_task, tempoAtual);
-            print_estado_sistema(tarefasPendentes, prontos, pendentes, tempoAtual, atual.id);
-            cout << "Executando T" << atual.id << " - Pressione Enter para proximo tick...\n";
-            cin.get();
-        }
-
-        //avança o tempo e verifica término
-        tempoAtual = fim;
-        if (atual.tempoRestante <= 0)
-        {
-            retornoTotal += (tempoAtual - atual.ingresso);
-            prontos.erase(prontos.begin());
-        }
-    }
-
-    //Mescla fatias consecutivas da mesma tarefa para o SVG
-    vector<FatiaTarefa> fatiasMescladas;
-    if (!fatias.empty())
-    {
-        int current_id = fatias[0].id, inicio = fatias[0].inicio, duracao = fatias[0].duracao;
-        for (size_t i = 1; i < fatias.size(); ++i)
-        {
-            if (fatias[i].id == current_id && fatias[i].inicio == fatias[i - 1].fim)
-                duracao += fatias[i].duracao;
-            else
-            {
-                fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
-                current_id = fatias[i].id;
-                inicio = fatias[i].inicio;
-                duracao = fatias[i].duracao;
-            }
-        }
-        fatiasMescladas.push_back({current_id, inicio, inicio + duracao, duracao});
-    }
-
-    exportarGanttSVG(fatiasMescladas, tarefasPendentes, "PRIOP"); //exporta a imagem
-
-    if (modoExecucao == "completo")
-        print_gantt(tarefasPendentes, running_task, tempoAtual); //mostra o gráfico de gantt completo
-
-    cout << fixed << setprecision(2);
-    cout << "\nRESULTADO FINAL:\n";
-    cout << "Tempo medio de espera: " << (esperaTotal / tarefas.size()) << endl;
-    cout << "Tempo medio de retorno: " << (retornoTotal / tarefas.size()) << endl;
-}
-
 // Carrega configuração e tarefas do arquivo
 vector<Tarefa> carregarConfiguracao()
 {
@@ -661,4 +311,153 @@ vector<Tarefa> carregarConfiguracao()
             tarefas[i].cor = coresPadrao[i % coresPadrao.size()];
 
     return tarefas;
+}
+
+
+void simulador(vector<Tarefa> &tarefasOriginais)
+{
+    cout << "Executando " << algoritmo << " (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
+
+    vector<Tarefa> pendentes = tarefasOriginais;
+    sort(pendentes.begin(), pendentes.end(), [](const Tarefa &a, const Tarefa &b) {
+        return a.ingresso < b.ingresso;
+    });
+
+    vector<Tarefa> prontos;
+    vector<int> running_task;
+    vector<FatiaTarefa> fatias;
+
+    int tempoAtual = 0;
+    double esperaTotal = 0, retornoTotal = 0;
+
+    while (!pendentes.empty() || !prontos.empty())
+    {
+        // 1. Traz tarefas que já chegaram
+        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
+        {
+            prontos.push_back(pendentes.front());
+            pendentes.erase(pendentes.begin());
+        }
+
+        // 2. Escolhe a próxima tarefa
+        int idx = escalonador(prontos);
+
+        if (idx == -1) // CPU ociosa
+        {
+            running_task.push_back(-1);
+            if (modoExecucao == "passo")
+            {
+                atualizarTempoRestante(tarefasOriginais, prontos, pendentes);
+                print_gantt(tarefasOriginais, running_task, tempoAtual);
+                print_estado_sistema(tarefasOriginais, prontos, pendentes, tempoAtual, -1);
+                cout << "CPU ociosa - Pressione Enter...\n";
+                cin.get();
+            }
+            tempoAtual++;
+            continue;
+        }
+
+        Tarefa &atual = prontos[idx];
+        int inicio = tempoAtual;
+        int duracaoFatia = 1;
+        int fim = tempoAtual + duracaoFatia;
+
+        // Contabiliza espera apenas na primeira execução da tarefa
+        if (atual.tempoRestante == atual.duracao)
+            esperaTotal += (inicio - atual.ingresso);
+
+        running_task.push_back(atual.id);
+        atual.tempoRestante -= duracaoFatia;
+        fatias.push_back({atual.id, inicio, fim, duracaoFatia});
+
+        if (modoExecucao == "passo")
+        {
+            atualizarTempoRestante(tarefasOriginais, prontos, pendentes);
+            print_gantt(tarefasOriginais, running_task, tempoAtual);
+            print_estado_sistema(tarefasOriginais, prontos, pendentes, tempoAtual, atual.id);
+            cout << "Executando T" << atual.id << " - Pressione Enter...\n";
+            cin.get();
+        }
+
+        tempoAtual = fim;
+
+        // Remove se terminou
+        if (atual.tempoRestante <= 0)
+        {
+            retornoTotal += (tempoAtual - atual.ingresso);
+            prontos.erase(prontos.begin() + idx);
+        }
+    }
+
+    // Mescla fatias consecutivas para o SVG
+    vector<FatiaTarefa> mescladas;
+    if (!fatias.empty())
+    {
+        FatiaTarefa atualFatia = fatias[0];
+        for (size_t i = 1; i < fatias.size(); ++i)
+        {
+            if (fatias[i].id == atualFatia.id && fatias[i].inicio == atualFatia.fim)
+                atualFatia.duracao += fatias[i].duracao, atualFatia.fim = fatias[i].fim;
+            else
+            {
+                mescladas.push_back(atualFatia);
+                atualFatia = fatias[i];
+            }
+        }
+        mescladas.push_back(atualFatia);
+    }
+
+    exportarGanttSVG(mescladas, tarefasOriginais, algoritmo);
+
+    if (modoExecucao == "completo")
+        print_gantt(tarefasOriginais, running_task, tempoAtual - 1);
+
+    cout << fixed << setprecision(2);
+    cout << "\nRESULTADO FINAL (" << algoritmo << "):\n";
+    cout << "Tempo medio de espera:  " << (esperaTotal / tarefasOriginais.size()) << endl;
+    cout << "Tempo medio de retorno: " << (retornoTotal / tarefasOriginais.size()) << endl;
+}
+
+int escalonador(const vector<Tarefa>& prontos)
+{
+    if (prontos.empty()) return -1;
+
+    int melhor = 0;
+
+    if (algoritmo == "PRIOP")
+    {
+        // Menor número de prioridade = maior prioridade
+        for (int i = 1; i < prontos.size(); ++i)
+        {
+            if (prontos[i].prioridade < prontos[melhor].prioridade ||
+               (prontos[i].prioridade == prontos[melhor].prioridade && 
+                prontos[i].ingresso < prontos[melhor].ingresso))
+            {
+                melhor = i;
+            }
+        }
+    }
+    else if (algoritmo == "SRTF")
+    {
+        // Menor tempo restante
+        for (int i = 1; i < prontos.size(); ++i)
+        {
+            if (prontos[i].tempoRestante < prontos[melhor].tempoRestante ||
+               (prontos[i].tempoRestante == prontos[melhor].tempoRestante && 
+                prontos[i].ingresso < prontos[melhor].ingresso))
+            {
+                melhor = i;
+            }
+        }
+    }
+    else // FIFO ou qualquer outro
+    {
+        // A que chegou primeiro (menor ingresso)
+        for (int i = 1; i < prontos.size(); ++i)
+        {
+            if (prontos[i].ingresso < prontos[melhor].ingresso)
+                melhor = i;
+        }
+    }
+    return melhor;
 }
