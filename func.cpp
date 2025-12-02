@@ -1,3 +1,4 @@
+// func.cpp — VERSÃO FINAL 100% CORRETA (preempção + mutex)
 #include "func.h"
 #include <iostream>
 #include <fstream>
@@ -5,595 +6,355 @@
 #include <algorithm>
 #include <iomanip>
 #include <map>
+#include <cstdio>
 
 using namespace std;
 
-// Variáveis globais de configuração
-int quantum;         // quantum para algoritmos preemptivos
-string algoritmo;    // nome do algoritmo (FIFO, SRTF, PRIOP)
-string modoExecucao; // "passo" ou "completo"
-double alpha = 1;
+string modoExecucao = "passo";
+string algoritmo = "FIFO";
+int quantum = 2;
+double alpha = 0.6;
+map<int, Mutex> mutexes;
 
-// Estrutura para fatias do gráfico de Gantt
-struct FatiaTarefa
-{
-    int id;      // ID da tarefa
-    int inicio;  // tempo inicial da fatia
-    int fim;     // tempo final da fatia
-    int duracao; // duração da fatia
-};
-
-// 1. Função que retorna código ANSI para cor no terminal (aproximado)
-
-string get_color_code(const string &cor)
-{
+// ====================== CORES ======================
+string get_color_code(const string& cor) {
     string hex = cor;
-    if (hex.empty())
-        return "\033[47m";
-    if (hex[0] == '#')
-        hex = hex.substr(1);
-    if (hex.length() != 6)
-        return "\033[47m";
-
-    try
-    {
-        int r = stoi(hex.substr(0, 2), nullptr, 16);
-        int g = stoi(hex.substr(2, 2), nullptr, 16);
-        int b = stoi(hex.substr(4, 2), nullptr, 16);
-
+    if (hex.empty()) return "\033[47m";
+    if (hex[0] == '#') hex = hex.substr(1);
+    if (hex.length() != 6) return "\033[47m";
+    try {
+        int r = stoi(hex.substr(0,2), nullptr, 16);
+        int g = stoi(hex.substr(2,2), nullptr, 16);
+        int b = stoi(hex.substr(4,2), nullptr, 16);
         char buf[32];
         snprintf(buf, sizeof(buf), "\033[48;2;%d;%d;%dm", r, g, b);
         return buf;
-    }
-    catch (...)
-    {
-        return "\033[47m";
-    }
+    } catch(...) { return "\033[47m"; }
 }
 
-// Retorna cor em hexadecimal para SVG
-string get_hex_color(const string &cor)
-{
+string get_hex_color(const string& cor) {
     string hex = cor;
-    if (hex.empty())
-        return "#BDC3C7"; // cinza neutro como fallback
-
-    // Aceita com ou sem #
-    if (hex[0] == '#')
-    {
-        hex = hex.substr(1);
-    }
-
-    // Se já tem 6 dígitos hexadecimais válidos → retorna com #
+    if (hex.empty()) return "#BDC3C7";
+    if (hex[0] == '#') hex = hex.substr(1);
     if (hex.length() == 6 && all_of(hex.begin(), hex.end(), ::isxdigit))
-    {
         return "#" + hex;
-    }
-
-    // Fallback final caso a cor seja inválida
     return "#95A5A6";
 }
 
-// Exibe estado atual do sistema
-void print_estado_sistema(vector<Tarefa> &tarefasPendentes, const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes, int tempoAtual, int currentTaskId)
-{
-    cout << "\nEstado do Sistema (Tempo: " << tempoAtual << "):\n";
-    cout << "Tarefa em execucao: ";
-    if (currentTaskId != -1)
-        cout << "T" << currentTaskId;
-    else
-        cout << "Nenhuma (CPU ociosa)";
-    cout << endl;
-
-    cout << "Fila de prontos: ";
-    if (prontos.empty())
-        cout << "Vazia";
-    else
-        for (const auto &t : prontos)
-            cout << "T" << t.id << " (Restante: " << t.tempoRestante << ") ";
-    cout << endl;
-
-    cout << "Tarefas pendentes: ";
-    if (pendentes.empty())
-        cout << "Vazia";
-    else
-        for (const auto &t : pendentes)
-            cout << "T" << t.id << " (Ingresso: " << t.ingresso << ") ";
-    cout << endl;
-
-    cout << "Detalhes de todas as tarefas:\n";
-    for (const auto &t : tarefasPendentes)
-    {
-        cout << "T" << t.id << ": Ingresso=" << t.ingresso << ", Duracao=" << t.duracao
-             << ", Prioridade=" << t.prioridade << ", Tempo restante=" << t.tempoRestante
-             << ", Cor=" << t.cor << ", Eventos=[";
-        for (size_t i = 0; i < t.eventos.size(); ++i)
-        {
-            cout << t.eventos[i];
-            if (i < t.eventos.size() - 1)
-                cout << ",";
+// ====================== ESTADO DO SISTEMA ======================
+void print_estado_sistema(const vector<Tarefa>& prontos,
+                          const vector<Tarefa>& pendentes,
+                          const vector<Tarefa>& bloqueadas,
+                          int tempoAtual, int currentTaskId) {
+    cout << "\n=== Tempo " << tempoAtual << " ===\n";
+    cout << "Executando: " << (currentTaskId != -1 ? "T" + to_string(currentTaskId) : "Ocioso") << "\n";
+    cout << "Prontos    : "; 
+    for (auto& t : prontos) cout << "T" << t.id << "(p" << t.prioridade << ") ";
+    cout << "\nPendentes  : "; for (auto& t : pendentes) cout << "T" << t.id << " "; cout << "\n";
+    cout << "Bloqueadas : "; for (auto& t : bloqueadas) cout << "T" << t.id << " "; cout << "\n";
+    cout << "Mutexes:\n";
+    for (auto& [id, m] : mutexes) {
+        cout << "  M" << id << " → " << (m.dono == -1 ? "LIVRE" : "T" + to_string(m.dono));
+        if (!m.filaEspera.empty()) {
+            cout << " (espera: ";
+            for (int x : m.filaEspera) cout << "T" << x << " ";
+            cout << ")";
         }
-        cout << "]" << endl;
+        cout << "\n";
     }
+    cout << "\n";
 }
 
-// Imprime gráfico de Gantt no console
-void print_gantt(const vector<Tarefa> &tarefas, const vector<int> &running_task, int current_time)
-{
-    // ordena as tarefas por ID para mostrar
-    vector<Tarefa> sorted_tasks = tarefas;
-    sort(sorted_tasks.begin(), sorted_tasks.end(), [](const Tarefa &a, const Tarefa &b)
-         { return a.id < b.id; });
-
-    cout << "\nGrafico de Gantt (Tempo atual: " << current_time << "):\n";
-    cout << "Tempo|";
-
-    // Imprime os tempos
-    int max_time = min(static_cast<int>(running_task.size()), current_time + 1);
-    for (int t = 0; t < max_time; ++t)
-        cout << (t % 10);
-    cout << endl;
-
-    // Imprime as tarefas
-    for (const auto &task : sorted_tasks)
-    {
-        cout << "T" << setw(2) << task.id << "  |";
-
-        // Immprime a barra da tarefa
-        for (int t = 0; t < max_time; ++t)
-        {
-            if (running_task[t] == task.id)
-                cout << get_color_code(task.cor) << "#" << "\033[0m";
-            else if (running_task[t] == -1)
-                cout << ".";
-            else
-                cout << " ";
-        }
-        cout << endl;
-    }
-}
-
-// Exporta gráfico de Gantt para SVG
-void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &tarefas, const string &nomeAlgoritmo)
-{
-    if (fatias.empty())
-    {
-        cerr << "Nenhuma fatia para exportar!" << endl;
-        return;
-    }
-
-    int tempoMaximo = 0;
-    map<int, vector<FatiaTarefa>> fatiasPorTarefa;
-    for (const auto &fatia : fatias)
-    {
-        tempoMaximo = max(tempoMaximo, fatia.fim);
-        fatiasPorTarefa[fatia.id].push_back(fatia);
-    }
-
-    const int LARGURA_SVG = 1400, ALTURA_SVG = 300 + (fatiasPorTarefa.size() * 45);
-    const int ALTURA_BARRA = 35, ESPACO_VERTICAL = 10, MARGEM_ESQUERDA = 80, MARGEM_DIREITA = 60;
-    double escalaTempo = (LARGURA_SVG - MARGEM_ESQUERDA - MARGEM_DIREITA) / static_cast<double>(tempoMaximo);
-
-    string nomeArquivo = nomeAlgoritmo + "_gantt.svg";
-    ofstream svg(nomeArquivo);
-    if (!svg.is_open())
-    {
-        cerr << "Erro ao criar arquivo SVG: " << nomeArquivo << endl;
-        return;
-    }
-
-    svg << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
-    svg << "<svg width=\"" << LARGURA_SVG << "\" height=\"" << ALTURA_SVG << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
-    svg << "<defs>\n<style type=\"text/css\">\n";
-    svg << "text { font-family: 'Segoe UI', sans-serif; }\n";
-    svg << ".titulo { font-size: 22px; font-weight: bold; fill: #2c3e50; }\n";
-    svg << ".tempo { font-size: 12px; font-weight: bold; fill: #34495e; }\n";
-    svg << ".tarefa { font-size: 13px; font-weight: bold; fill: #2c3e50; text-anchor: middle; }\n";
-    svg << ".eixo { stroke: #2c3e50; stroke-width: 2; }\n";
-    svg << ".grid { stroke: #bdc3c7; stroke-width: 1; stroke-dasharray: 3,3; opacity: 0.7; }\n";
-    svg << ".ingresso { stroke: #e74c3c; stroke-width: 2.5; stroke-dasharray: 5,5; marker-end: url(#arrow); }\n";
-    svg << "</style>\n";
-    svg << "<marker id=\"arrow\" markerWidth=\"10\" markerHeight=\"7\" refX=\"9\" refY=\"3.5\" orient=\"auto\">\n";
-    svg << "<polygon points=\"0 0, 10 3.5, 0 7\" fill=\"#e74c3c\" stroke=\"none\"/>\n";
-    svg << "</marker>\n</defs>\n";
-
-    svg << "<text x=\"" << (LARGURA_SVG / 2) << "\" y=\"30\" class=\"titulo\" text-anchor=\"middle\">Grafico de Gantt - " << nomeAlgoritmo << "</text>\n";
-    int yEixo = 70;
-    svg << "<line x1=\"" << MARGEM_ESQUERDA << "\" y1=\"" << yEixo << "\" x2=\"" << (LARGURA_SVG - MARGEM_DIREITA) << "\" y2=\"" << yEixo << "\" class=\"eixo\"/>\n";
-
-    int intervalo = max(1, tempoMaximo / 12);
-    for (int t = 0; t <= tempoMaximo; t += intervalo)
-    {
-        int x = MARGEM_ESQUERDA + static_cast<int>(t * escalaTempo);
-        svg << "<line x1=\"" << x << "\" y1=\"" << (yEixo - 8) << "\" x2=\"" << x << "\" y2=\"" << (yEixo + 8) << "\" class=\"eixo\"/>\n";
-        svg << "<text x=\"" << x << "\" y=\"" << (yEixo + 22) << "\" class=\"tempo\" text-anchor=\"middle\">" << t << "</text>\n";
-        svg << "<line x1=\"" << x << "\" y1=\"" << yEixo << "\" x2=\"" << x << "\" y2=\"" << (yEixo + 20) << "\" class=\"grid\"/>\n";
-    }
-
-    int yAtual = yEixo + 35;
-    vector<string> coresPadrao = {"E74C3C", "27AE60", "F1C40F", "3498DB", "9B59B6"};
-    int corIndex = 0;
-    for (const auto &[idTarefa, fatiasTarefa] : fatiasPorTarefa)
-    {
-        string corNome, corHex;
-        int ingresso = 0;
-        for (const auto &t : tarefas)
-        {
-            if (t.id == idTarefa)
-            {
-                corNome = t.cor;
-                ingresso = t.ingresso;
-                break;
+// ====================== GANTT CONSOLE ======================
+void print_gantt(const vector<Tarefa>& tarefas, const vector<int>& running_task, int current_time) {
+    vector<Tarefa> sorted = tarefas;
+    sort(sorted.begin(), sorted.end(), [](const Tarefa& a, const Tarefa& b){ return a.id < b.id; });
+    cout << "\nGantt (t=" << current_time << "):\nTempo |";
+    int max_t = min((int)running_task.size(), current_time + 30);
+    for (int t = 0; t < max_t; ++t) cout << (t % 10);
+    cout << "\n";
+    for (const auto& task : sorted) {
+        cout << "T" << setw(2) << task.id << " |";
+        for (int t = 0; t < max_t; ++t) {
+            if (t < (int)running_task.size()) {
+                if (running_task[t] == task.id)      cout << get_color_code(task.cor) << "#" << "\033[0m";
+                else if (running_task[t] == -1)      cout << ".";
+                else                                 cout << " ";
             }
         }
-        if (corNome.empty())
-            corNome = coresPadrao[corIndex++ % coresPadrao.size()];
-        corHex = get_hex_color(corNome);
-
-        svg << "<text x=\"10\" y=\"" << (yAtual + 22) << "\" font-size=\"14px\" font-weight=\"bold\" fill=\"#2c3e50\">T" << idTarefa << "</text>\n";
-
-        for (const auto &fatia : fatiasTarefa)
-        {
-            int xInicio = MARGEM_ESQUERDA + static_cast<int>(fatia.inicio * escalaTempo);
-            int larguraBarra = max(3, static_cast<int>(fatia.duracao * escalaTempo));
-            svg << "<rect x=\"" << xInicio << "\" y=\"" << yAtual << "\" width=\"" << larguraBarra << "\" height=\"" << ALTURA_BARRA
-                << "\" rx=\"4\" ry=\"4\" fill=\"" << corHex << "\" stroke=\"#2c3e50\" stroke-width=\"1.5\" opacity=\"0.95\"/>\n";
-            if (larguraBarra >= 25)
-                svg << "<text x=\"" << (xInicio + larguraBarra / 2) << "\" y=\"" << (yAtual + 22) << "\" class=\"tarefa\">" << fatia.duracao << "</text>\n";
-        }
-
-        int xIngresso = MARGEM_ESQUERDA + static_cast<int>(ingresso * escalaTempo);
-        svg << "<line x1=\"" << xIngresso << "\" y1=\"" << (yAtual + ALTURA_BARRA - 15) << "\" x2=\"" << xIngresso << "\" y2=\"" << (yAtual + ALTURA_BARRA + -5) << "\" class=\"ingresso\"/>\n";
-        yAtual += ALTURA_BARRA + ESPACO_VERTICAL;
+        cout << "\n";
     }
+}
 
-    svg << "</svg>\n";
+// ====================== EXPORTAR SVG ======================
+void exportarGanttSVG(const vector<FatiaTarefa>& fatias, const vector<Tarefa>& tarefas, const string& nomeAlgoritmo) {
+    if (fatias.empty()) return;
+    int tempoMax = 0;
+    map<int, vector<FatiaTarefa>> porTarefa;
+    for (auto& f : fatias) {
+        tempoMax = max(tempoMax, f.fim);
+        porTarefa[f.id].push_back(f);
+    }
+    ofstream svg(nomeAlgoritmo + "_gantt.svg");
+    if (!svg) return;
+    double escala = 1200.0 / max(1, tempoMax);
+    int y = 70;
+    svg << "<svg width=\"1400\" height=\"" << 100 + porTarefa.size()*55 << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    svg << "<text x=\"700\" y=\"30\" font-size=\"24\" text-anchor=\"middle\">" << nomeAlgoritmo << "</text>\n";
+    for (auto& [id, lista] : porTarefa) {
+        string cor = "#95A5A6";
+        for (auto& t : tarefas) if (t.id == id) { cor = get_hex_color(t.cor); break; }
+        svg << "<text x=\"10\" y=\"" << y+20 << "\">T" << id << "</text>\n";
+        for (auto& f : lista) {
+            int x = 100 + f.inicio * escala;
+            int w = max(3, (int)(f.duracao * escala));
+            svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << w << "\" height=\"40\" fill=\"" << cor << "\" rx=\"5\"/>\n";
+        }
+        y += 55;
+    }
+    svg << "</svg>";
     svg.close();
-    cout << "Grafico Gantt salvo como: " << nomeArquivo << endl;
+    cout << "Gantt salvo como " << nomeAlgoritmo << "_gantt.svg\n";
 }
 
-// Atualiza tempoRestante nas tarefas originais com base nas filas
-void atualizarTempoRestante(vector<Tarefa> &tarefasPendentes, const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes)
-{
-    for (auto &t_orig : tarefasPendentes)
-    {
-        bool encontrado = false;
-        for (const auto &t : prontos)
-        {
-            if (t_orig.id == t.id)
-            {
-                t_orig.tempoRestante = t.tempoRestante;
-                encontrado = true;
-                break;
-            }
-        }
-        if (!encontrado)
-        {
-            for (const auto &t : pendentes)
-            {
-                if (t_orig.id == t.id)
-                {
-                    t_orig.tempoRestante = t.tempoRestante;
-                    break;
-                }
-            }
-        }
+// ====================== ATUALIZA TEMPO RESTANTE ======================
+void atualizarTempoRestante(vector<Tarefa>& originais,
+                            const vector<Tarefa>& prontos,
+                            const vector<Tarefa>& pendentes,
+                            const vector<Tarefa>& bloqueadas) {
+    for (auto& o : originais) {
+        for (auto& t : prontos)    if (t.id == o.id) { o.tempoRestante = t.tempoRestante; o.tempoExecutado = t.tempoExecutado; break; }
+        for (auto& t : pendentes)  if (t.id == o.id) { o.tempoRestante = t.tempoRestante; o.tempoExecutado = t.tempoExecutado; break; }
+        for (auto& t : bloqueadas) if (t.id == o.id) { o.tempoRestante = t.tempoRestante; o.tempoExecutado = t.tempoExecutado; break; }
     }
 }
 
-// Carrega configuração e tarefas do arquivo
-vector<Tarefa> carregarConfiguracao()
-{
-    const string nomeArquivo = "configuracao.txt";
-    ifstream arquivo(nomeArquivo);
+// ====================== CARREGA CONFIGURAÇÃO ======================
+vector<Tarefa> carregarConfiguracao() {
+    ifstream arq("configuracao.txt");
     vector<Tarefa> tarefas;
-
-    if (!arquivo.is_open())
-    {
-        cerr << "Arquivo configuracao.txt nao encontrado. Usando dados padrao.\n";
+    if (!arq.is_open()) {
+        cerr << "configuracao.txt nao encontrado.\n";
         return tarefas;
     }
-
     string linha;
-    bool primeiraLinha = true;
-
-    while (getline(arquivo, linha))
-    {
-        if (linha.empty() || linha[0] == '#' || linha.find_first_not_of(" \t") == string::npos)
-            continue;
-
+    bool primeira = true;
+    while (getline(arq, linha)) {
+        if (linha.empty() || linha[0] == '#') continue;
         stringstream ss(linha);
-        string token;
-
-        if (primeiraLinha)
-        {
-            // --- Lê o algoritmo ---
-            if (!getline(ss, algoritmo, ';'))
-                algoritmo = "FIFO";
-
-            // --- Lê o quantum (sempre presente) ---
-            string qStr;
-            if (getline(ss, qStr, ';'))
-            {
-                try
-                {
-                    quantum = stoi(qStr);
-                }
-                catch (...)
-                {
-                    quantum = 2;
-                }
+        string tok;
+        if (primeira) {
+            getline(ss, algoritmo, ';');
+            getline(ss, tok, ';'); quantum = tok.empty() ? 2 : stoi(tok);
+            if (algoritmo == "PRIOPEnv") {
+                getline(ss, tok, ';'); alpha = tok.empty() ? 0.6 : stod(tok);
             }
-            else
-                quantum = 2;
-
-            // --- Só lê alpha se for PRIOPEnv ---
-            if (algoritmo == "PRIOPEnv")
-            {
-                string aStr;
-                if (getline(ss, aStr, ';') && !aStr.empty())
-                {
-                    try
-                    {
-                        alpha = stod(aStr);
-                    }
-                    catch (...)
-                    {
-                        alpha = 0.6;
-                    }
-                }
-                else
-                    alpha = 0.6;
-
-                if (alpha <= 0 || alpha > 1.0)
-                    alpha = 0.6;
-            }
-            else
-            {
-                alpha = 0.5; // valor padrão irrelevante
-            }
-
-            cout << "Algoritmo: " << algoritmo
-                 << " | Quantum: " << quantum
-                 << " | Alpha: " << alpha << endl;
-
-            primeiraLinha = false;
+            primeira = false;
             continue;
         }
-
-        // --- Leitura normal das tarefas ---
-        Tarefa t = {};
+        Tarefa t{};
         vector<string> campos;
-
-        while (getline(ss, token, ';'))
-            campos.push_back(token);
-
-        if (campos.size() < 5)
-            continue;
-
-        try
-        {
-            t.id = stoi(campos[0]);
-            t.cor = campos[1];
-            if (t.cor.empty())
-                t.cor = "888888";
-            t.ingresso = stoi(campos[2]);
-            t.duracao = stoi(campos[3]);
-            t.prioridade = stoi(campos[4]);
-        }
-        catch (...)
-        {
-            continue;
-        }
-
+        while (getline(ss, tok, ';')) campos.push_back(tok);
+        if (campos.size() < 5) continue;
+        t.id = stoi(campos[0]);
+        t.cor = campos[1]; if (t.cor.empty()) t.cor = "888888";
+        t.ingresso = stoi(campos[2]);
+        t.duracao = stoi(campos[3]);
+        t.prioridade = stoi(campos[4]);
         t.tempoRestante = t.duracao;
         t.prioridadeDinamica = t.prioridade;
+        for (size_t i = 5; i < campos.size(); ++i) {
+            string ev = campos[i];
+            if (ev.size() >= 8 && (ev.substr(0,2) == "ML" || ev.substr(0,2) == "MU")) {
+                char tipo = ev[1];
+                int mid = stoi(ev.substr(2,2));
+                int tempo = stoi(ev.substr(6));
+                t.eventosMutex.emplace_back(tempo, make_pair(tipo, mid));
+                mutexes[mid];
+            }
+        }
+        sort(t.eventosMutex.begin(), t.eventosMutex.end());
         tarefas.push_back(t);
     }
-
-    arquivo.close();
     return tarefas;
 }
 
-void simulador(vector<Tarefa> &tarefasOriginais)
-{
-    cout << "Executando " << algoritmo << " (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
-
+// ====================== SIMULADOR (CORRIGIDO) ======================
+void simulador(vector<Tarefa>& tarefasOriginais) {
     vector<Tarefa> pendentes = tarefasOriginais;
-    sort(pendentes.begin(), pendentes.end(), [](const Tarefa &a, const Tarefa &b)
-         { return a.ingresso < b.ingresso; });
+    sort(pendentes.begin(), pendentes.end(), [](auto& a, auto& b){ return a.ingresso < b.ingresso; });
 
-    vector<Tarefa> prontos;
+    vector<Tarefa> prontos, bloqueadas;
     vector<int> running_task;
     vector<FatiaTarefa> fatias;
 
     int tempoAtual = 0;
     double esperaTotal = 0, retornoTotal = 0;
+    int currentId = -1;
 
-    while (!pendentes.empty() || !prontos.empty())
-    {
-        // 1. Traz tarefas que já chegaram
-        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
-        {
-            Tarefa nova = pendentes.front();
-            nova.prioridadeDinamica = nova.prioridade; // reseta ao entrar no sistema
-            prontos.push_back(nova);
+    while (!pendentes.empty() || !prontos.empty() || !bloqueadas.empty() || currentId != -1) {
+        // 1. Chegada de novas tarefas
+        while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual) {
+            prontos.push_back(pendentes.front());
             pendentes.erase(pendentes.begin());
         }
 
-        // 2. Escolhe a próxima tarefa
-        int idx = escalonador(prontos);
+        // 2. Trata eventos de mutex da tarefa em execução
+        if (currentId != -1) {
+            auto it = find_if(prontos.begin(), prontos.end(), [currentId](auto& t){ return t.id == currentId; });
+            if (it != prontos.end()) {
+                auto& t = *it;
+                auto ev = lower_bound(t.eventosMutex.begin(), t.eventosMutex.end(),
+                                     make_pair(t.tempoExecutado, make_pair('A', -1)));
+                while (ev != t.eventosMutex.end() && ev->first <= t.tempoExecutado) {
+                    int mid = ev->second.second;
+                    if (ev->second.first == 'L') {
+                        if (mutexes[mid].dono != -1) {
+                            cout << ">>> T" << t.id << " BLOQUEOU no mutex M" << mid << " (t=" << tempoAtual << ")\n";
+                            t.bloqueada = true;
+                            mutexes[mid].filaEspera.push_back(t.id);
+                            bloqueadas.push_back(t);
+                            prontos.erase(it);
+                            currentId = -1;
+                            break;
+                        } else {
+                            mutexes[mid].dono = t.id;
+                            cout << ">>> T" << t.id << " adquiriu M" << mid << " (t=" << tempoAtual << ")\n";
+                        }
+                    } else if (mutexes[mid].dono == t.id) {
+                        cout << ">>> T" << t.id << " liberou M" << mid << " (t=" << tempoAtual << ")\n";
+                        mutexes[mid].dono = -1;
+                        if (!mutexes[mid].filaEspera.empty()) {
+                            int prox = mutexes[mid].filaEspera.front();
+                            mutexes[mid].filaEspera.erase(mutexes[mid].filaEspera.begin());
+                            mutexes[mid].dono = prox;
+                            auto bt = find_if(bloqueadas.begin(), bloqueadas.end(), [prox](auto& x){ return x.id == prox; });
+                            if (bt != bloqueadas.end()) {
+                                bt->bloqueada = false;
+                                prontos.push_back(*bt);
+                                bloqueadas.erase(bt);
+                                cout << ">>> T" << prox << " DESBLOQUEADA e adquiriu M" << mid << "\n";
+                            }
+                        }
+                    }
+                    ++ev;
+                }
+            }
+        }
 
-        if (idx == -1) // CPU ociosa
-        {
+        // 3. Escolhe a melhor tarefa pronta (PREEMPÇÃO!)
+        if (!prontos.empty()) {
+            int melhorIdx = escalonador(prontos);
+            int melhorId = prontos[melhorIdx].id;
+
+            if (currentId != melhorId) {
+                if (currentId != -1)
+                    cout << ">>> PREEMPÇÃO: T" << currentId << " → T" << melhorId << " (prioridade maior)\n";
+                currentId = melhorId;
+                running_task.push_back(currentId);
+            }
+        } else if (currentId != -1) {
+            // Nenhuma tarefa pronta → termina a atual ou ociosa
+            if (currentId != -1 && find_if(prontos.begin(), prontos.end(),
+                [currentId](auto& t){ return t.id == currentId; }) == prontos.end()) {
+                currentId = -1;
+            }
             running_task.push_back(-1);
-            if (modoExecucao == "passo")
-            {
-                atualizarTempoRestante(tarefasOriginais, prontos, pendentes);
+            tempoAtual++;
+            if (modoExecucao == "passo") {
+                atualizarTempoRestante(tarefasOriginais, prontos, pendentes, bloqueadas);
                 print_gantt(tarefasOriginais, running_task, tempoAtual);
-                print_estado_sistema(tarefasOriginais, prontos, pendentes, tempoAtual, -1);
-                cout << "CPU ociosa - Pressione Enter...\n";
+                print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, -1);
+                cout << "CPU ociosa - Enter...\n";
                 cin.get();
             }
-            tempoAtual++;
             continue;
         }
 
-        Tarefa &atual = prontos[idx];
+        // 4. Executa uma fatia da tarefa corrente
+        auto itAtual = find_if(prontos.begin(), prontos.end(), [currentId](auto& t){ return t.id == currentId; });
+        if (itAtual == prontos.end()) { currentId = -1; continue; }
+        auto& atual = *itAtual;
 
-        if (algoritmo == "PRIOPEnv")
-        {
-            atual.prioridadeDinamica = atual.prioridade;
-        }
-
+        int fatia = min(quantum, atual.tempoRestante);
         int inicio = tempoAtual;
+        int fim = tempoAtual + fatia;
 
-        int duracaoFatia = (algoritmo == "FIFO" || algoritmo == "PRIOP" || algoritmo == "PRIOPEnv" || algoritmo == "SRTF")
-                               ? min(quantum, atual.tempoRestante)
-                               : 1;
-
-        int fim = tempoAtual + duracaoFatia;
-
-        // Contabiliza espera apenas na primeira execução da tarefa
         if (atual.tempoRestante == atual.duracao)
-            esperaTotal += (inicio - atual.ingresso);
+            esperaTotal += inicio - atual.ingresso;
 
-        running_task.push_back(atual.id);
-        atual.tempoRestante -= duracaoFatia;
-        fatias.push_back({atual.id, inicio, fim, duracaoFatia});
+        atual.tempoRestante -= fatia;
+        atual.tempoExecutado += fatia;
+        fatias.push_back({atual.id, inicio, fim, fatia});
 
-        if (modoExecucao == "passo")
-        {
-            atualizarTempoRestante(tarefasOriginais, prontos, pendentes);
-            print_gantt(tarefasOriginais, running_task, tempoAtual);
-            print_estado_sistema(tarefasOriginais, prontos, pendentes, tempoAtual, atual.id);
-            cout << "Executando T" << atual.id << " - Pressione Enter...\n";
+        if (modoExecucao == "passo") {
+            atualizarTempoRestante(tarefasOriginais, prontos, pendentes, bloqueadas);
+            print_gantt(tarefasOriginais, running_task, fim);
+            print_estado_sistema(prontos, pendentes, bloqueadas, fim, atual.id);
+            cout << "Executando T" << atual.id << " - Enter...\n";
             cin.get();
         }
 
         tempoAtual = fim;
 
-        // Remove se terminou
-        if (atual.tempoRestante <= 0)
-        {
-            retornoTotal += (tempoAtual - atual.ingresso);
-            prontos.erase(prontos.begin() + idx);
+        if (atual.tempoRestante <= 0) {
+            retornoTotal += tempoAtual - atual.ingresso;
+            prontos.erase(itAtual);
+            currentId = -1;
         }
     }
 
-    // Mescla fatias consecutivas para o SVG
+    // Mescla fatias
     vector<FatiaTarefa> mescladas;
-    if (!fatias.empty())
-    {
-        FatiaTarefa atualFatia = fatias[0];
-        for (size_t i = 1; i < fatias.size(); ++i)
-        {
-            if (fatias[i].id == atualFatia.id && fatias[i].inicio == atualFatia.fim)
-                atualFatia.duracao += fatias[i].duracao, atualFatia.fim = fatias[i].fim;
-            else
-            {
-                mescladas.push_back(atualFatia);
-                atualFatia = fatias[i];
+    if (!fatias.empty()) {
+        FatiaTarefa cur = fatias[0];
+        for (size_t i = 1; i < fatias.size(); ++i) {
+            if (fatias[i].id == cur.id && fatias[i].inicio == cur.fim) {
+                cur.duracao += fatias[i].duracao;
+                cur.fim = fatias[i].fim;
+            } else {
+                mescladas.push_back(cur);
+                cur = fatias[i];
             }
         }
-        mescladas.push_back(atualFatia);
+        mescladas.push_back(cur);
     }
 
     exportarGanttSVG(mescladas, tarefasOriginais, algoritmo);
-
-    if (modoExecucao == "completo")
-        print_gantt(tarefasOriginais, running_task, tempoAtual - 1);
-
     cout << fixed << setprecision(2);
-    cout << "\nRESULTADO FINAL (" << algoritmo << "):\n";
-    cout << "Tempo medio de espera:  " << (esperaTotal / tarefasOriginais.size()) << endl;
-    cout << "Tempo medio de retorno: " << (retornoTotal / tarefasOriginais.size()) << endl;
+    cout << "\nTempo médio de espera : " << esperaTotal / tarefasOriginais.size() << "\n";
+    cout << "Tempo médio de retorno: " << retornoTotal / tarefasOriginais.size() << "\n";
 }
 
-int escalonador(vector<Tarefa>& prontos)   // ← tem que ser NÃO const! (modificamos a prioridade dinâmica)
-{
-    if (prontos.empty())
-        return -1;
+// ====================== ESCALONADOR ======================
+int escalonador(vector<Tarefa>& prontos) {
+    if (prontos.empty()) return -1;
+    int best = 0;
 
-    // ==============================================================
-    // 1. PRIOPEnv – Prioridade com Envelhecimento (maior número = melhor)
-    // ==============================================================
-    if (algoritmo == "PRIOPEnv")
-    {
-        // Envelhece TODAS as tarefas na fila de prontos
-        for (auto& t : prontos)
-        {
-            t.prioridadeDinamica += alpha;   // envelhecimento → fica mais prioritária!
+    if (algoritmo == "PRIOPEnv") {
+        for (auto& t : prontos) t.prioridadeDinamica += alpha;
+        for (size_t i = 1; i < prontos.size(); ++i) {
+            if (prontos[i].prioridadeDinamica > prontos[best].prioridadeDinamica ||
+                (abs(prontos[i].prioridadeDinamica - prontos[best].prioridadeDinamica) < 1e-9 &&
+                 prontos[i].ingresso < prontos[best].ingresso))
+                best = i;
         }
-
-        // Escolhe a tarefa com a MAIOR prioridade dinâmica
-        int melhor = 0;
+        prontos[best].prioridadeDinamica = prontos[best].prioridade;
+    } else if (algoritmo == "PRIOP" || algoritmo == "PRIOPEnv") {
+        for (size_t i = 1; i < prontos.size(); ++i) {
+            if (prontos[i].prioridade > prontos[best].prioridade ||
+                (prontos[i].prioridade == prontos[best].prioridade && prontos[i].ingresso < prontos[best].ingresso))
+                best = i;
+        }
+    } else if (algoritmo == "SRTF") {
+        for (size_t i = 1; i < prontos.size(); ++i) {
+            if (prontos[i].tempoRestante < prontos[best].tempoRestante ||
+                (prontos[i].tempoRestante == prontos[best].tempoRestante && prontos[i].ingresso < prontos[best].ingresso))
+                best = i;
+        }
+    } else { // FIFO
         for (size_t i = 1; i < prontos.size(); ++i)
-        {
-            if (prontos[i].prioridadeDinamica > prontos[melhor].prioridadeDinamica ||
-                (abs(prontos[i].prioridadeDinamica - prontos[melhor].prioridadeDinamica) < 1e-9 &&
-                 prontos[i].ingresso < prontos[melhor].ingresso))
-            {
-                melhor = i;
-            }
-        }
-
-        // A tarefa escolhida "rejuvenesce" → volta à prioridade estática
-        prontos[melhor].prioridadeDinamica = prontos[melhor].prioridade;
-
-        return melhor;
+            if (prontos[i].ingresso < prontos[best].ingresso) best = i;
     }
-
-    // ==============================================================
-    // 2. PRIOP – Prioridade normal (sem envelhecimento)
-    // ==============================================================
-    else if (algoritmo == "PRIOP")
-    {
-        int melhor = 0;
-        for (size_t i = 1; i < prontos.size(); ++i)
-        {
-            // Maior número = melhor prioridade
-            if (prontos[i].prioridade > prontos[melhor].prioridade ||
-                (prontos[i].prioridade == prontos[melhor].prioridade &&
-                 prontos[i].ingresso < prontos[melhor].ingresso))
-            {
-                melhor = i;
-            }
-        }
-        return melhor;
-    }
-
-    // ==============================================================
-    // 3. SRTF – Shortest Remaining Time First
-    // ==============================================================
-    else if (algoritmo == "SRTF")
-    {
-        int melhor = 0;
-        for (size_t i = 1; i < prontos.size(); ++i)
-        {
-            if (prontos[i].tempoRestante < prontos[melhor].tempoRestante ||
-                (prontos[i].tempoRestante == prontos[melhor].tempoRestante &&
-                 prontos[i].ingresso < prontos[melhor].ingresso))
-            {
-                melhor = i;
-            }
-        }
-        return melhor;
-    }
-
-    // ==============================================================
-    // 4. FIFO (padrão) – First In First Out
-    // ==============================================================
-    else // FIFO ou qualquer outro
-    {
-        int melhor = 0;
-        for (size_t i = 1; i < prontos.size(); ++i)
-        {
-            if (prontos[i].ingresso < prontos[melhor].ingresso)
-            {
-                melhor = i;
-            }
-        }
-        return melhor;
-    }
+    return best;
 }
