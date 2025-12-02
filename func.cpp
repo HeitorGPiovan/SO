@@ -12,6 +12,7 @@ using namespace std;
 int quantum;         // quantum para algoritmos preemptivos
 string algoritmo;    // nome do algoritmo (FIFO, SRTF, PRIOP)
 string modoExecucao; // "passo" ou "completo"
+double alpha = 1;
 
 // Estrutura para fatias do gráfico de Gantt
 struct FatiaTarefa
@@ -22,25 +23,30 @@ struct FatiaTarefa
     int duracao; // duração da fatia
 };
 
-
 // 1. Função que retorna código ANSI para cor no terminal (aproximado)
 
-string get_color_code(const string& cor)
+string get_color_code(const string &cor)
 {
     string hex = cor;
-    if (hex.empty()) return "\033[47m";
-    if (hex[0] == '#') hex = hex.substr(1);
-    if (hex.length() != 6) return "\033[47m";
+    if (hex.empty())
+        return "\033[47m";
+    if (hex[0] == '#')
+        hex = hex.substr(1);
+    if (hex.length() != 6)
+        return "\033[47m";
 
-    try {
-        int r = stoi(hex.substr(0,2), nullptr, 16);
-        int g = stoi(hex.substr(2,2), nullptr, 16);
-        int b = stoi(hex.substr(4,2), nullptr, 16);
+    try
+    {
+        int r = stoi(hex.substr(0, 2), nullptr, 16);
+        int g = stoi(hex.substr(2, 2), nullptr, 16);
+        int b = stoi(hex.substr(4, 2), nullptr, 16);
 
         char buf[32];
         snprintf(buf, sizeof(buf), "\033[48;2;%d;%d;%dm", r, g, b);
         return buf;
-    } catch (...) {
+    }
+    catch (...)
+    {
         return "\033[47m";
     }
 }
@@ -49,15 +55,18 @@ string get_color_code(const string& cor)
 string get_hex_color(const string &cor)
 {
     string hex = cor;
-    if (hex.empty()) return "#BDC3C7";   // cinza neutro como fallback
+    if (hex.empty())
+        return "#BDC3C7"; // cinza neutro como fallback
 
     // Aceita com ou sem #
-    if (hex[0] == '#') {
+    if (hex[0] == '#')
+    {
         hex = hex.substr(1);
     }
 
     // Se já tem 6 dígitos hexadecimais válidos → retorna com #
-    if (hex.length() == 6 && all_of(hex.begin(), hex.end(), ::isxdigit)) {
+    if (hex.length() == 6 && all_of(hex.begin(), hex.end(), ::isxdigit))
+    {
         return "#" + hex;
     }
 
@@ -101,7 +110,8 @@ void print_estado_sistema(vector<Tarefa> &tarefasPendentes, const vector<Tarefa>
         for (size_t i = 0; i < t.eventos.size(); ++i)
         {
             cout << t.eventos[i];
-            if (i < t.eventos.size() - 1) cout << ",";
+            if (i < t.eventos.size() - 1)
+                cout << ",";
         }
         cout << "]" << endl;
     }
@@ -110,7 +120,7 @@ void print_estado_sistema(vector<Tarefa> &tarefasPendentes, const vector<Tarefa>
 // Imprime gráfico de Gantt no console
 void print_gantt(const vector<Tarefa> &tarefas, const vector<int> &running_task, int current_time)
 {
-    //ordena as tarefas por ID para mostrar
+    // ordena as tarefas por ID para mostrar
     vector<Tarefa> sorted_tasks = tarefas;
     sort(sorted_tasks.begin(), sorted_tasks.end(), [](const Tarefa &a, const Tarefa &b)
          { return a.id < b.id; });
@@ -118,18 +128,18 @@ void print_gantt(const vector<Tarefa> &tarefas, const vector<int> &running_task,
     cout << "\nGrafico de Gantt (Tempo atual: " << current_time << "):\n";
     cout << "Tempo|";
 
-    //Imprime os tempos
+    // Imprime os tempos
     int max_time = min(static_cast<int>(running_task.size()), current_time + 1);
     for (int t = 0; t < max_time; ++t)
         cout << (t % 10);
     cout << endl;
 
-     //Imprime as tarefas
+    // Imprime as tarefas
     for (const auto &task : sorted_tasks)
     {
         cout << "T" << setw(2) << task.id << "  |";
 
-        //Immprime a barra da tarefa
+        // Immprime a barra da tarefa
         for (int t = 0; t < max_time; ++t)
         {
             if (running_task[t] == task.id)
@@ -216,7 +226,8 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
                 break;
             }
         }
-        if (corNome.empty()) corNome = coresPadrao[corIndex++ % coresPadrao.size()];
+        if (corNome.empty())
+            corNome = coresPadrao[corIndex++ % coresPadrao.size()];
         corHex = get_hex_color(corNome);
 
         svg << "<text x=\"10\" y=\"" << (yAtual + 22) << "\" font-size=\"14px\" font-weight=\"bold\" fill=\"#2c3e50\">T" << idTarefa << "</text>\n";
@@ -232,7 +243,7 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
         }
 
         int xIngresso = MARGEM_ESQUERDA + static_cast<int>(ingresso * escalaTempo);
-        svg << "<line x1=\"" << xIngresso << "\" y1=\"" << (yAtual + ALTURA_BARRA -15) << "\" x2=\"" << xIngresso << "\" y2=\"" << (yAtual + ALTURA_BARRA + -5) << "\" class=\"ingresso\"/>\n";
+        svg << "<line x1=\"" << xIngresso << "\" y1=\"" << (yAtual + ALTURA_BARRA - 15) << "\" x2=\"" << xIngresso << "\" y2=\"" << (yAtual + ALTURA_BARRA + -5) << "\" class=\"ingresso\"/>\n";
         yAtual += ALTURA_BARRA + ESPACO_VERTICAL;
     }
 
@@ -285,53 +296,98 @@ vector<Tarefa> carregarConfiguracao()
 
     string linha;
     bool primeiraLinha = true;
+
     while (getline(arquivo, linha))
     {
-        if (linha.empty() || linha[0] == '#') continue; // permite comentários
+        if (linha.empty() || linha[0] == '#' || linha.find_first_not_of(" \t") == string::npos)
+            continue;
 
         stringstream ss(linha);
-        string campo;
+        string token;
 
         if (primeiraLinha)
         {
-            getline(ss, algoritmo, ';');
-            getline(ss, campo, ';');
-            quantum = stoi(campo);
+            // --- Lê o algoritmo ---
+            if (!getline(ss, algoritmo, ';'))
+                algoritmo = "FIFO";
+
+            // --- Lê o quantum (sempre presente) ---
+            string qStr;
+            if (getline(ss, qStr, ';'))
+            {
+                try
+                {
+                    quantum = stoi(qStr);
+                }
+                catch (...)
+                {
+                    quantum = 2;
+                }
+            }
+            else
+                quantum = 2;
+
+            // --- Só lê alpha se for PRIOPEnv ---
+            if (algoritmo == "PRIOPEnv")
+            {
+                string aStr;
+                if (getline(ss, aStr, ';') && !aStr.empty())
+                {
+                    try
+                    {
+                        alpha = stod(aStr);
+                    }
+                    catch (...)
+                    {
+                        alpha = 0.6;
+                    }
+                }
+                else
+                    alpha = 0.6;
+
+                if (alpha <= 0 || alpha > 1.0)
+                    alpha = 0.6;
+            }
+            else
+            {
+                alpha = 0.5; // valor padrão irrelevante
+            }
+
+            cout << "Algoritmo: " << algoritmo
+                 << " | Quantum: " << quantum
+                 << " | Alpha: " << alpha << endl;
+
             primeiraLinha = false;
             continue;
         }
 
+        // --- Leitura normal das tarefas ---
         Tarefa t = {};
-        // ID
-        getline(ss, campo, ';');
-        t.id = stoi(campo);
+        vector<string> campos;
 
-        // COR → agora aceita #RRGGBB ou RRGGBB
-        getline(ss, t.cor, ';');
+        while (getline(ss, token, ';'))
+            campos.push_back(token);
 
-        // Ingresso
-        getline(ss, campo, ';');
-        t.ingresso = stoi(campo);
+        if (campos.size() < 5)
+            continue;
 
-        // Duração
-        getline(ss, campo, ';');
-        t.duracao = stoi(campo);
-
-        // Prioridade
-        getline(ss, campo, ';');
-        t.prioridade = stoi(campo);
-
-        // Eventos (pode estar vazio)
-        string eventosStr;
-        getline(ss, eventosStr, ';');
-        stringstream eventosStream(eventosStr);
-        string ev;
-        while (getline(eventosStream, ev, ','))
+        try
         {
-            if (!ev.empty()) t.eventos.push_back(stoi(ev));
+            t.id = stoi(campos[0]);
+            t.cor = campos[1];
+            if (t.cor.empty())
+                t.cor = "888888";
+            t.ingresso = stoi(campos[2]);
+            t.duracao = stoi(campos[3]);
+            t.prioridade = stoi(campos[4]);
+        }
+        catch (...)
+        {
+            continue;
         }
 
         t.tempoRestante = t.duracao;
+        t.prioridadeDinamica = t.prioridade;
         tarefas.push_back(t);
     }
 
@@ -344,9 +400,8 @@ void simulador(vector<Tarefa> &tarefasOriginais)
     cout << "Executando " << algoritmo << " (modo " << (modoExecucao == "passo" ? "passo-a-passo" : "completo") << ")...\n";
 
     vector<Tarefa> pendentes = tarefasOriginais;
-    sort(pendentes.begin(), pendentes.end(), [](const Tarefa &a, const Tarefa &b) {
-        return a.ingresso < b.ingresso;
-    });
+    sort(pendentes.begin(), pendentes.end(), [](const Tarefa &a, const Tarefa &b)
+         { return a.ingresso < b.ingresso; });
 
     vector<Tarefa> prontos;
     vector<int> running_task;
@@ -360,7 +415,9 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         // 1. Traz tarefas que já chegaram
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
-            prontos.push_back(pendentes.front());
+            Tarefa nova = pendentes.front();
+            nova.prioridadeDinamica = nova.prioridade; // reseta ao entrar no sistema
+            prontos.push_back(nova);
             pendentes.erase(pendentes.begin());
         }
 
@@ -383,8 +440,18 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         }
 
         Tarefa &atual = prontos[idx];
+
+        if (algoritmo == "PRIOPEnv")
+        {
+            atual.prioridadeDinamica = atual.prioridade;
+        }
+
         int inicio = tempoAtual;
-        int duracaoFatia = 1;
+
+        int duracaoFatia = (algoritmo == "FIFO" || algoritmo == "PRIOP" || algoritmo == "PRIOPEnv" || algoritmo == "SRTF")
+                               ? min(quantum, atual.tempoRestante)
+                               : 1;
+
         int fim = tempoAtual + duracaoFatia;
 
         // Contabiliza espera apenas na primeira execução da tarefa
@@ -443,46 +510,90 @@ void simulador(vector<Tarefa> &tarefasOriginais)
     cout << "Tempo medio de retorno: " << (retornoTotal / tarefasOriginais.size()) << endl;
 }
 
-int escalonador(const vector<Tarefa>& prontos)
+int escalonador(vector<Tarefa>& prontos)   // ← tem que ser NÃO const! (modificamos a prioridade dinâmica)
 {
-    if (prontos.empty()) return -1;
+    if (prontos.empty())
+        return -1;
 
-    int melhor = 0;
-
-    if (algoritmo == "PRIOP")
+    // ==============================================================
+    // 1. PRIOPEnv – Prioridade com Envelhecimento (maior número = melhor)
+    // ==============================================================
+    if (algoritmo == "PRIOPEnv")
     {
-        // Menor número de prioridade = maior prioridade
-        for (int i = 1; i < prontos.size(); ++i)
+        // Envelhece TODAS as tarefas na fila de prontos
+        for (auto& t : prontos)
         {
-            if (prontos[i].prioridade < prontos[melhor].prioridade ||
-               (prontos[i].prioridade == prontos[melhor].prioridade && 
-                prontos[i].ingresso < prontos[melhor].ingresso))
+            t.prioridadeDinamica += alpha;   // envelhecimento → fica mais prioritária!
+        }
+
+        // Escolhe a tarefa com a MAIOR prioridade dinâmica
+        int melhor = 0;
+        for (size_t i = 1; i < prontos.size(); ++i)
+        {
+            if (prontos[i].prioridadeDinamica > prontos[melhor].prioridadeDinamica ||
+                (abs(prontos[i].prioridadeDinamica - prontos[melhor].prioridadeDinamica) < 1e-9 &&
+                 prontos[i].ingresso < prontos[melhor].ingresso))
             {
                 melhor = i;
             }
         }
+
+        // A tarefa escolhida "rejuvenesce" → volta à prioridade estática
+        prontos[melhor].prioridadeDinamica = prontos[melhor].prioridade;
+
+        return melhor;
     }
+
+    // ==============================================================
+    // 2. PRIOP – Prioridade normal (sem envelhecimento)
+    // ==============================================================
+    else if (algoritmo == "PRIOP")
+    {
+        int melhor = 0;
+        for (size_t i = 1; i < prontos.size(); ++i)
+        {
+            // Maior número = melhor prioridade
+            if (prontos[i].prioridade > prontos[melhor].prioridade ||
+                (prontos[i].prioridade == prontos[melhor].prioridade &&
+                 prontos[i].ingresso < prontos[melhor].ingresso))
+            {
+                melhor = i;
+            }
+        }
+        return melhor;
+    }
+
+    // ==============================================================
+    // 3. SRTF – Shortest Remaining Time First
+    // ==============================================================
     else if (algoritmo == "SRTF")
     {
-        // Menor tempo restante
-        for (int i = 1; i < prontos.size(); ++i)
+        int melhor = 0;
+        for (size_t i = 1; i < prontos.size(); ++i)
         {
             if (prontos[i].tempoRestante < prontos[melhor].tempoRestante ||
-               (prontos[i].tempoRestante == prontos[melhor].tempoRestante && 
-                prontos[i].ingresso < prontos[melhor].ingresso))
+                (prontos[i].tempoRestante == prontos[melhor].tempoRestante &&
+                 prontos[i].ingresso < prontos[melhor].ingresso))
             {
                 melhor = i;
             }
         }
+        return melhor;
     }
+
+    // ==============================================================
+    // 4. FIFO (padrão) – First In First Out
+    // ==============================================================
     else // FIFO ou qualquer outro
     {
-        // A que chegou primeiro (menor ingresso)
-        for (int i = 1; i < prontos.size(); ++i)
+        int melhor = 0;
+        for (size_t i = 1; i < prontos.size(); ++i)
         {
             if (prontos[i].ingresso < prontos[melhor].ingresso)
+            {
                 melhor = i;
+            }
         }
+        return melhor;
     }
-    return melhor;
 }

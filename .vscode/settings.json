@@ -14,7 +14,8 @@
         "unordered_map": "cpp",
         "string_view": "cpp",
         "format": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "istream": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
