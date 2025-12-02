@@ -5,46 +5,40 @@
 #include <string>
 #include <map>
 
-using std::vector;
-using std::string;
-
-// Estrutura usada no gráfico de Gantt
 struct FatiaTarefa {
-    int id;
-    int inicio;
-    int fim;
-    int duracao;
+    int id, inicio, fim, duracao;
 };
 
-typedef struct Tarefa {
+struct Tarefa {
+    int id;
+    std::string cor;
     int ingresso;
     int duracao;
     int prioridade;
     double prioridadeDinamica;
-    int id;
-    vector<int> eventos;                   // não usado (mantido por compatibilidade)
-    string cor;
     int tempoRestante;
-    std::vector<std::pair<int, std::pair<char, int>>> eventosMutex; // {tempo_rel, {'L'/'U', mutex_id}}
     int tempoExecutado = 0;
     bool bloqueada = false;
-} Tarefa;
-
-extern string modoExecucao;
-extern string algoritmo;
-extern int quantum;
-extern double alpha;
+    std::vector<std::pair<int, std::pair<char, int>>> eventosMutex; // {tempo_rel, {'L','U'}, mutex_id}
+};
 
 struct Mutex {
     int dono = -1;
     std::vector<int> filaEspera;
 };
 
+extern std::string modoExecucao;
+extern std::string algoritmo;
+extern int quantum;
+extern double alpha;
 extern std::map<int, Mutex> mutexes;
 
-// Funções
-vector<Tarefa> carregarConfiguracao();
-int escalonador(vector<Tarefa>& prontos);
-void simulador(vector<Tarefa>& tarefasOriginais);
+void print_gantt(const std::vector<Tarefa>& tarefas, const std::vector<int>& running_task, int current_time);
+void print_estado_sistema(const std::vector<Tarefa>& prontos, const std::vector<Tarefa>& pendentes,
+                          const std::vector<Tarefa>& bloqueadas, int tempoAtual, int currentTaskId);
+void exportarGanttSVG(const std::vector<FatiaTarefa>& fatias, const std::vector<Tarefa>& tarefas, const std::string& nome);
+std::vector<Tarefa> carregarConfiguracao();
+int escalonador(std::vector<Tarefa>& prontos);
+void simulador(std::vector<Tarefa>& tarefasOriginais);
 
 #endif

@@ -1,6 +1,4 @@
-PRIOP;2;0.5
-# id;cor;ingresso;duracao;prioridade;eventos_mutex
-1;#E74C3C;0;10;3;
-2;#27AE60;2;8;2;
-3;#F1C40F;4;6;1
-4;#3498DB;6;5;4
+PRIOP;2
+1;#E74C3C;0;12;3;ML01:04;MU01:10
+2;#27AE60;2;9;5;ML01:02;MU01:08
+3;#F1C40F;8;6;1

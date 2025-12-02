@@ -1,12 +1,10 @@
-<svg width="1400" height="320" xmlns="http://www.w3.org/2000/svg">
+<svg width="1400" height="265" xmlns="http://www.w3.org/2000/svg">
 <text x="700" y="30" font-size="24" text-anchor="middle">PRIOP</text>
 <text x="10" y="90">T1</text>
-<rect x="100" y="70" width="248" height="40" fill="#E74C3C" rx="5"/>
-<rect x="555" y="70" width="165" height="40" fill="#E74C3C" rx="5"/>
+<rect x="100" y="70" width="88" height="40" fill="#E74C3C" rx="5"/>
+<rect x="588" y="70" width="444" height="40" fill="#E74C3C" rx="5"/>
 <text x="10" y="145">T2</text>
-<rect x="720" y="125" width="331" height="40" fill="#27AE60" rx="5"/>
+<rect x="188" y="125" width="400" height="40" fill="#27AE60" rx="5"/>
 <text x="10" y="200">T3</text>
-<rect x="1051" y="180" width="248" height="40" fill="#F1C40F" rx="5"/>
-<text x="10" y="255">T4</text>
-<rect x="348" y="235" width="206" height="40" fill="#3498DB" rx="5"/>
+<rect x="1033" y="180" width="266" height="40" fill="#F1C40F" rx="5"/>
 </svg>
