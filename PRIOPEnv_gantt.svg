@@ -1,29 +1,15 @@
-<svg width="1400" height="375" xmlns="http://www.w3.org/2000/svg">
+<svg width="1400" height="265" xmlns="http://www.w3.org/2000/svg">
 <text x="700" y="30" font-size="24" text-anchor="middle">PRIOPEnv</text>
 <text x="10" y="90">T1</text>
-<rect x="100" y="70" width="80" height="40" fill="#E74C3C" rx="5"/>
-<rect x="220" y="70" width="40" height="40" fill="#E74C3C" rx="5"/>
-<rect x="580" y="70" width="40" height="40" fill="#E74C3C" rx="5"/>
-<rect x="740" y="70" width="40" height="40" fill="#E74C3C" rx="5"/>
-<rect x="980" y="70" width="40" height="40" fill="#E74C3C" rx="5"/>
-<rect x="1060" y="70" width="80" height="40" fill="#E74C3C" rx="5"/>
+<rect x="100" y="70" width="160" height="40" fill="#E74C3C" rx="5"/>
+<rect x="500" y="70" width="80" height="40" fill="#E74C3C" rx="5"/>
+<rect x="900" y="70" width="240" height="40" fill="#E74C3C" rx="5"/>
 <text x="10" y="145">T2</text>
-<rect x="180" y="125" width="40" height="40" fill="#27AE60" rx="5"/>
-<rect x="500" y="125" width="40" height="40" fill="#27AE60" rx="5"/>
-<rect x="700" y="125" width="40" height="40" fill="#27AE60" rx="5"/>
-<rect x="1020" y="125" width="40" height="40" fill="#27AE60" rx="5"/>
-<rect x="1180" y="125" width="80" height="40" fill="#27AE60" rx="5"/>
+<rect x="340" y="125" width="80" height="40" fill="#27AE60" rx="5"/>
+<rect x="820" y="125" width="80" height="40" fill="#27AE60" rx="5"/>
+<rect x="1140" y="125" width="160" height="40" fill="#27AE60" rx="5"/>
 <text x="10" y="200">T3</text>
-<rect x="300" y="180" width="40" height="40" fill="#3498DB" rx="5"/>
-<rect x="620" y="180" width="40" height="40" fill="#3498DB" rx="5"/>
-<rect x="940" y="180" width="40" height="40" fill="#3498DB" rx="5"/>
-<rect x="1140" y="180" width="40" height="40" fill="#3498DB" rx="5"/>
-<rect x="1260" y="180" width="40" height="40" fill="#3498DB" rx="5"/>
-<text x="10" y="255">T4</text>
-<rect x="260" y="235" width="40" height="40" fill="#9B59B6" rx="5"/>
-<rect x="540" y="235" width="40" height="40" fill="#9B59B6" rx="5"/>
-<rect x="660" y="235" width="40" height="40" fill="#9B59B6" rx="5"/>
-<rect x="780" y="235" width="160" height="40" fill="#9B59B6" rx="5"/>
-<text x="10" y="310">T5</text>
-<rect x="340" y="290" width="160" height="40" fill="#E67E22" rx="5"/>
+<rect x="260" y="180" width="80" height="40" fill="#3498DB" rx="5"/>
+<rect x="420" y="180" width="80" height="40" fill="#3498DB" rx="5"/>
+<rect x="580" y="180" width="240" height="40" fill="#3498DB" rx="5"/>
 </svg>

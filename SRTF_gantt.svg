@@ -1,14 +1,10 @@
-<svg width="1400" height="375" xmlns="http://www.w3.org/2000/svg">
+<svg width="1400" height="265" xmlns="http://www.w3.org/2000/svg">
 <text x="700" y="30" font-size="24" text-anchor="middle">SRTF</text>
 <text x="10" y="90">T1</text>
-<rect x="100" y="70" width="40" height="40" fill="#E74C3C" rx="5"/>
-<rect x="740" y="70" width="280" height="40" fill="#E74C3C" rx="5"/>
+<rect x="100" y="70" width="80" height="40" fill="#E74C3C" rx="5"/>
+<rect x="500" y="70" width="400" height="40" fill="#E74C3C" rx="5"/>
 <text x="10" y="145">T2</text>
-<rect x="140" y="125" width="240" height="40" fill="#27AE60" rx="5"/>
+<rect x="180" y="125" width="320" height="40" fill="#27AE60" rx="5"/>
 <text x="10" y="200">T3</text>
-<rect x="540" y="180" width="200" height="40" fill="#3498DB" rx="5"/>
-<text x="10" y="255">T4</text>
-<rect x="1020" y="235" width="280" height="40" fill="#9B59B6" rx="5"/>
-<text x="10" y="310">T5</text>
-<rect x="380" y="290" width="160" height="40" fill="#E67E22" rx="5"/>
+<rect x="900" y="180" width="400" height="40" fill="#3498DB" rx="5"/>
 </svg>

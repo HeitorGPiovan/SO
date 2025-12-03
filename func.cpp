@@ -115,13 +115,17 @@ void print_estado_sistema(const vector<Tarefa> &prontos, const vector<Tarefa> &p
             cout << "prioridade=" << t.prioridade;
         }
         cout << " [BLOQUEADA]";
-        
+
         // Mostra motivo do bloqueio
-        if (t.remainingIO > 0) {
+        if (t.remainingIO > 0)
+        {
             cout << " (E/S: " << t.remainingIO << " unidades restantes)";
-        } else if (!t.eventosMutex.empty()) {
+        }
+        else if (!t.eventosMutex.empty())
+        {
             cout << " (Mutex: ";
-            for (auto &ev : t.eventosMutex) {
+            for (auto &ev : t.eventosMutex)
+            {
                 cout << "t" << ev.first << (ev.second.first == 'L' ? "L" : "U")
                      << ev.second.second << " ";
             }
@@ -287,9 +291,19 @@ vector<Tarefa> carregarConfiguracao()
             }
             else if (acao.substr(0, 3) == "IO:")
             {
-                int tempoRel = stoi(acao.substr(3, 2));
-                int duracao = stoi(acao.substr(6));
-                t.eventosIO.emplace_back(tempoRel, duracao);
+                // Formato 1: IO:XX (apenas duração, tempo relativo = 1)
+                // Formato 2: IO:XXYY (XX = tempo_rel, YY = duração)
+                if (acao.length() >= 7) // Formato IO:XXYY (ex: IO:0203 = t=2, dur=3)
+                {
+                    int tempoRel = stoi(acao.substr(3, 2));
+                    int duracao = stoi(acao.substr(5));
+                    t.eventosIO.emplace_back(tempoRel, duracao);
+                }
+                else // Formato simples IO:XX
+                {
+                    int duracao = stoi(acao.substr(3));
+                    t.eventosIO.emplace_back(1, duracao); // Tempo relativo padrão = 1
+                }
             }
         }
         sort(t.eventosMutex.begin(), t.eventosMutex.end());
@@ -382,7 +396,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             if (algoritmo == "PRIOPEnv" && novoId != currentId)
             {
                 prontos[idx].prioridadeDinamica = prontos[idx].prioridade;
-                prontos[idx].prioridadeDinamica --;
+                prontos[idx].prioridadeDinamica--;
             }
 
             if (currentId != novoId && currentId != -1)
@@ -516,9 +530,9 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 prontos.erase(it);
                 currentId = -1;
                 running_task.push_back(-1);
-                
+
                 tarefa.eventosIO.erase(io);
-                
+
                 tempoAtual++;
                 aplicarEnvelhecimento(prontos, -1);
                 if (modoExecucao == "passo")
