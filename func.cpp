@@ -51,59 +51,84 @@ string get_hex_color(const string &cor)
 }
 
 // ESTADO DO SISTEMA
-void print_estado_sistema(const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes, const vector<Tarefa> &bloqueadas, int tempoAtual, int currentTaskId)
+void print_estado_sistema(const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes,
+                          const vector<Tarefa> &bloqueadas, int tempoAtual, int currentTaskId)
 {
     cout << "\n=== Tempo " << tempoAtual << " ===\n";
     cout << "Executando: " << (currentTaskId != -1 ? "T" + to_string(currentTaskId) : "Ocioso") << "\n";
 
-    cout << "Prontos    : ";
+    cout << "\n--- PRONTOS ---\n";
     for (auto &t : prontos)
     {
+        cout << "T" << t.id << ": ";
+        cout << "ingresso=" << t.ingresso << ", ";
+        cout << "duracao=" << t.duracao << ", ";
+        cout << "restante=" << t.tempoRestante << ", ";
+        cout << "executado=" << t.tempoExecutado << ", ";
         if (algoritmo == "PRIOPEnv")
         {
-            // Mostra prioridade estática e dinâmica
-            cout << "T" << t.id << "(p" << t.prioridade << "/pd"
-                 << fixed << setprecision(1) << t.prioridadeDinamica << ") ";
+            cout << "p_est=" << t.prioridade << ", ";
+            cout << "p_din=" << fixed << setprecision(1) << t.prioridadeDinamica;
         }
         else
         {
-            // Mostra apenas prioridade estática
-            cout << "T" << t.id << "(p" << t.prioridade << ") ";
+            cout << "prioridade=" << t.prioridade;
         }
+        if (t.bloqueada)
+            cout << " [BLOQUEADA]";
+        cout << "\n";
     }
-    cout << "\n";
 
-    cout << "Pendentes  : ";
+    cout << "\n--- PENDENTES ---\n";
     for (auto &t : pendentes)
     {
+        cout << "T" << t.id << ": ";
+        cout << "ingresso=" << t.ingresso << ", ";
+        cout << "duracao=" << t.duracao << ", ";
         if (algoritmo == "PRIOPEnv")
         {
-            cout << "T" << t.id << "(p" << t.prioridade << "/pd"
-                 << fixed << setprecision(1) << t.prioridadeDinamica << ") ";
+            cout << "p_est=" << t.prioridade << ", ";
+            cout << "p_din=" << fixed << setprecision(1) << t.prioridadeDinamica;
         }
         else
         {
-            cout << "T" << t.id << "(p" << t.prioridade << ") ";
+            cout << "prioridade=" << t.prioridade;
         }
+        cout << "\n";
     }
-    cout << "\n";
 
-    cout << "Bloqueadas : ";
+    cout << "\n--- BLOQUEADAS ---\n";
     for (auto &t : bloqueadas)
     {
+        cout << "T" << t.id << ": ";
+        cout << "ingresso=" << t.ingresso << ", ";
+        cout << "duracao=" << t.duracao << ", ";
+        cout << "restante=" << t.tempoRestante << ", ";
+        cout << "executado=" << t.tempoExecutado << ", ";
         if (algoritmo == "PRIOPEnv")
         {
-            cout << "T" << t.id << "(p" << t.prioridade << "/pd"
-                 << fixed << setprecision(1) << t.prioridadeDinamica << ") ";
+            cout << "p_est=" << t.prioridade << ", ";
+            cout << "p_din=" << fixed << setprecision(1) << t.prioridadeDinamica;
         }
         else
         {
-            cout << "T" << t.id << "(p" << t.prioridade << ") ";
+            cout << "prioridade=" << t.prioridade;
         }
+        cout << " [BLOQUEADA]";
+        if (!t.eventosMutex.empty())
+        {
+            cout << " (eventos: ";
+            for (auto &ev : t.eventosMutex)
+            {
+                cout << "t" << ev.first << (ev.second.first == 'L' ? "L" : "U")
+                     << ev.second.second << " ";
+            }
+            cout << ")";
+        }
+        cout << "\n";
     }
-    cout << "\n";
 
-    cout << "Mutexes:\n";
+    cout << "\n--- MUTEXES ---\n";
     for (const auto &[id, m] : mutexes)
     {
         cout << "  M" << setw(2) << id << " -> " << (m.dono == -1 ? "LIVRE" : "T" + to_string(m.dono));
@@ -315,17 +340,23 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             aplicarEnvelhecimento(prontos, currentId);
         }
         // Escalonamento (com preempção automática por envelhecimento)
+
         if (!prontos.empty())
         {
             int idx = escalonador(prontos);
             int novoId = prontos[idx].id;
+
+            if (algoritmo == "PRIOPEnv" && novoId != currentId)
+            {
+                prontos[idx].prioridadeDinamica = prontos[idx].prioridade;
+            }
 
             if (currentId != novoId && currentId != -1)
             {
                 cout << ">>> PREEMPÇÃO: T" << currentId << " -> T" << novoId
                      << " (t=" << tempoAtual << ")"
                      << (algoritmo == "PRIOPEnv" ? " [envelhecimento]" : "") << "\n";
-                // Aplica envelhecimento na preempção
+
                 aplicarEnvelhecimento(prontos, currentId);
             }
             else if (currentId == -1 && novoId != -1)
@@ -503,31 +534,72 @@ int escalonador(std::vector<Tarefa> &prontos)
         return -1;
 
     int best = 0;
-    for (size_t i = 1; i < prontos.size(); ++i)
-    {
-        bool melhor = false;
 
-        if (algoritmo == "PRIOPEnv")
+    if (algoritmo == "SRTF")
+    {
+        // Shortest Remaining Time First
+        for (size_t i = 1; i < prontos.size(); ++i)
         {
-            // Usa prioridade dinâmica (com envelhecimento)
+            if (prontos[i].tempoRestante < prontos[best].tempoRestante)
+            {
+                best = i;
+            }
+            else if (prontos[i].tempoRestante == prontos[best].tempoRestante &&
+                     prontos[i].ingresso < prontos[best].ingresso)
+            {
+                best = i;
+            }
+        }
+    }
+    else if (algoritmo == "PRIOPEnv")
+    {
+        // Prioridade Preemptiva com Envelhecimento
+        for (size_t i = 1; i < prontos.size(); ++i)
+        {
             double pBest = prontos[best].prioridadeDinamica;
             double pI = prontos[i].prioridadeDinamica;
 
             if (pI > pBest || (pI == pBest && prontos[i].ingresso < prontos[best].ingresso))
-                melhor = true;
+            {
+                best = i;
+            }
         }
-        else
+    }
+    else if (algoritmo == "PRIOP")
+    {
+        // Prioridade Preemptiva (sem envelhecimento)
+        for (size_t i = 1; i < prontos.size(); ++i)
         {
-            // Comportamento original (prioridade estática)
             int pBest = prontos[best].prioridade;
             int pI = prontos[i].prioridade;
 
             if (pI > pBest || (pI == pBest && prontos[i].ingresso < prontos[best].ingresso))
-                melhor = true;
+            {
+                best = i;
+            }
         }
-
-        if (melhor)
-            best = i;
     }
+    else if (algoritmo == "FIFO")
+    {
+        for (size_t i = 1; i < prontos.size(); ++i)
+        {
+            if (prontos[i].ingresso < prontos[best].ingresso)
+            {
+                best = i;
+            }
+        }
+    }
+    else
+    {
+        // Default: FIFO
+        for (size_t i = 1; i < prontos.size(); ++i)
+        {
+            if (prontos[i].ingresso < prontos[best].ingresso)
+            {
+                best = i;
+            }
+        }
+    }
+
     return best;
 }
