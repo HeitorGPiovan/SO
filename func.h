@@ -15,11 +15,13 @@ struct Tarefa {
     int ingresso;
     int duracao;
     int prioridade;
-    double prioridadeDinamica;
+    double prioridadeDinamica;  // MANTER
     int tempoRestante;
     int tempoExecutado = 0;
     bool bloqueada = false;
-    std::vector<std::pair<int, std::pair<char, int>>> eventosMutex; // {tempo_rel, {'L','U'}, mutex_id}
+    std::vector<std::pair<int, std::pair<char, int>>> eventosMutex;
+    std::vector<std::pair<int, int>> eventosIO;  // ADICIONAR
+    int remainingIO = 0;  // ADICIONAR
 };
 
 struct Mutex {

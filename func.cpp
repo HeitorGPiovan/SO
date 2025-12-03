@@ -50,7 +50,7 @@ string get_hex_color(const string &cor)
     return (hex.length() == 6 && all_of(hex.begin(), hex.end(), ::isxdigit)) ? "#" + hex : "#95A5A6";
 }
 
-// ESTADO DO SISTEMA
+// ESTADO DO SISTEMA - ATUALIZADA PARA MOSTRAR E/S
 void print_estado_sistema(const vector<Tarefa> &prontos, const vector<Tarefa> &pendentes,
                           const vector<Tarefa> &bloqueadas, int tempoAtual, int currentTaskId)
 {
@@ -115,11 +115,13 @@ void print_estado_sistema(const vector<Tarefa> &prontos, const vector<Tarefa> &p
             cout << "prioridade=" << t.prioridade;
         }
         cout << " [BLOQUEADA]";
-        if (!t.eventosMutex.empty())
-        {
-            cout << " (eventos: ";
-            for (auto &ev : t.eventosMutex)
-            {
+        
+        // Mostra motivo do bloqueio
+        if (t.remainingIO > 0) {
+            cout << " (E/S: " << t.remainingIO << " unidades restantes)";
+        } else if (!t.eventosMutex.empty()) {
+            cout << " (Mutex: ";
+            for (auto &ev : t.eventosMutex) {
                 cout << "t" << ev.first << (ev.second.first == 'L' ? "L" : "U")
                      << ev.second.second << " ";
             }
@@ -144,7 +146,7 @@ void print_estado_sistema(const vector<Tarefa> &prontos, const vector<Tarefa> &p
     cout << "\n";
 }
 
-// GANTT
+// GANTT (mantida igual)
 void print_gantt(const vector<Tarefa> &tarefas, const vector<int> &running_task, int current_time)
 {
     vector<Tarefa> sorted = tarefas;
@@ -178,7 +180,7 @@ void print_gantt(const vector<Tarefa> &tarefas, const vector<int> &running_task,
     cout << "\n";
 }
 
-// SVG
+// SVG (mantida igual)
 void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &tarefas, const string &nome)
 {
     if (fatias.empty())
@@ -220,7 +222,7 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
     cout << "Gantt salvo como " << nome << "_gantt.svg\n";
 }
 
-// CARREGA CONFIGURAÇÃO
+// CARREGA CONFIGURAÇÃO - JÁ CORRETA
 vector<Tarefa> carregarConfiguracao()
 {
     ifstream arq("configuracao.txt");
@@ -268,9 +270,9 @@ vector<Tarefa> carregarConfiguracao()
         t.prioridade = stoi(campos[4]);
         t.prioridadeDinamica = t.prioridade;
         t.tempoRestante = t.duracao;
-        t.prioridadeDinamica = t.prioridade;
         t.tempoExecutado = 0;
         t.bloqueada = false;
+        t.remainingIO = 0;
 
         for (size_t i = 5; i < campos.size(); ++i)
         {
@@ -283,8 +285,15 @@ vector<Tarefa> carregarConfiguracao()
                 t.eventosMutex.emplace_back(tempoRel, make_pair(tipo, mutexId));
                 mutexes[mutexId];
             }
+            else if (acao.substr(0, 3) == "IO:")
+            {
+                int tempoRel = stoi(acao.substr(3, 2));
+                int duracao = stoi(acao.substr(6));
+                t.eventosIO.emplace_back(tempoRel, duracao);
+            }
         }
         sort(t.eventosMutex.begin(), t.eventosMutex.end());
+
         tarefas.push_back(t);
     }
     return tarefas;
@@ -297,16 +306,14 @@ void aplicarEnvelhecimento(vector<Tarefa> &prontos, int tarefaExecutandoId)
 
     for (auto &t : prontos)
     {
-        // NÃO envelhece a tarefa que está atualmente executando
         if (t.id != tarefaExecutandoId)
         {
-            // Envelhecimento FIXO por evento (não acumulado)
             t.prioridadeDinamica += alpha;
         }
     }
 }
 
-// SIMULADOR — VERSÃO 100% CORRETA (SEM LOOP INFINITO)
+// SIMULADOR CORRIGIDO
 void simulador(vector<Tarefa> &tarefasOriginais)
 {
     vector<Tarefa> pendentes = tarefasOriginais;
@@ -324,31 +331,58 @@ void simulador(vector<Tarefa> &tarefasOriginais)
 
     while (true)
     {
-        bool chegouNovaTarefa = false; // <-- ADICIONE
-        // Chegadas
+        // 1. DECREMENTA I/O DAS BLOQUEADAS
+        for (auto it = bloqueadas.begin(); it != bloqueadas.end();)
+        {
+            if (it->remainingIO > 0)
+            {
+                it->remainingIO--;
+                if (it->remainingIO == 0)
+                {
+                    cout << ">>> T" << it->id << " E/S completada - desbloqueada (t=" << tempoAtual << ")\n";
+                    it->bloqueada = false;
+                    prontos.push_back(*it);
+                    it = bloqueadas.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        // 2. CHEGADAS DE NOVAS TAREFAS
+        bool chegouNovaTarefa = false;
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
             Tarefa nova = pendentes.front();
-            nova.prioridadeDinamica = nova.prioridade; // inicializa dinâmica
+            nova.prioridadeDinamica = nova.prioridade;
             prontos.push_back(nova);
             pendentes.erase(pendentes.begin());
             chegouNovaTarefa = true;
         }
 
+        // 3. ENVELHECIMENTO NA CHEGADA
         if (chegouNovaTarefa)
         {
             aplicarEnvelhecimento(prontos, currentId);
         }
-        // Escalonamento (com preempção automática por envelhecimento)
 
+        // 4. ESCALONAMENTO
         if (!prontos.empty())
         {
             int idx = escalonador(prontos);
             int novoId = prontos[idx].id;
 
+            // RESETA PRIORIDADE AO SER ESCALONADA
             if (algoritmo == "PRIOPEnv" && novoId != currentId)
             {
                 prontos[idx].prioridadeDinamica = prontos[idx].prioridade;
+                prontos[idx].prioridadeDinamica --;
             }
 
             if (currentId != novoId && currentId != -1)
@@ -356,29 +390,26 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 cout << ">>> PREEMPÇÃO: T" << currentId << " -> T" << novoId
                      << " (t=" << tempoAtual << ")"
                      << (algoritmo == "PRIOPEnv" ? " [envelhecimento]" : "") << "\n";
-
                 aplicarEnvelhecimento(prontos, currentId);
             }
             else if (currentId == -1 && novoId != -1)
             {
-                // CPU saindo do estado ocioso
                 aplicarEnvelhecimento(prontos, -1);
             }
             currentId = novoId;
         }
 
-        // Fim da simulação
+        // 5. FIM DA SIMULAÇÃO
         if (currentId == -1 && prontos.empty() && pendentes.empty() && bloqueadas.empty())
         {
             break;
         }
 
-        // CPU ociosa
+        // 6. CPU OCIOSA
         if (currentId == -1)
         {
             running_task.push_back(-1);
             tempoAtual++;
-            // Aplica envelhecimento mesmo durante ocioso
             aplicarEnvelhecimento(prontos, -1);
             if (modoExecucao == "passo")
             {
@@ -390,6 +421,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             continue;
         }
 
+        // 7. LOCALIZA TAREFA ATUAL
         auto it = find_if(prontos.begin(), prontos.end(),
                           [currentId](const Tarefa &t)
                           { return t.id == currentId; });
@@ -400,8 +432,11 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         }
         Tarefa &tarefa = *it;
 
-        // PROCESSA EVENTO DE MUTEX (se houver no tempo relativo atual + 1)
+        // 8. PROCESSAMENTO DE EVENTOS
+
         bool eventoProcessado = false;
+
+        // 8a. EVENTOS MUTEX
         for (auto ev = tarefa.eventosMutex.begin(); ev != tarefa.eventosMutex.end(); ++ev)
         {
             if (ev->first == tarefa.tempoExecutado + 1)
@@ -449,7 +484,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                         }
                     }
                 }
-                // Remove o evento processado
                 tarefa.eventosMutex.erase(ev);
                 break;
             }
@@ -458,7 +492,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         if (eventoProcessado)
         {
             tempoAtual++;
-            // Aplica envelhecimento ao bloquear/desbloquear
             aplicarEnvelhecimento(prontos, -1);
             if (modoExecucao == "passo")
             {
@@ -470,7 +503,36 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             continue;
         }
 
-        // Executa unidade
+        // 8b. EVENTOS E/S
+        for (auto io = tarefa.eventosIO.begin(); io != tarefa.eventosIO.end(); ++io)
+        {
+            if (io->first == tarefa.tempoExecutado + 1)
+            {
+                int duracao = io->second;
+                cout << ">>> T" << tarefa.id << " iniciou E/S de duracao " << duracao << " (t=" << tempoAtual << ")\n";
+                tarefa.bloqueada = true;
+                tarefa.remainingIO = duracao;
+                bloqueadas.push_back(tarefa);
+                prontos.erase(it);
+                currentId = -1;
+                running_task.push_back(-1);
+                
+                tarefa.eventosIO.erase(io);
+                
+                tempoAtual++;
+                aplicarEnvelhecimento(prontos, -1);
+                if (modoExecucao == "passo")
+                {
+                    print_gantt(tarefasOriginais, running_task, tempoAtual);
+                    print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, -1);
+                    cout << "Tarefa em E/S - Enter...\n";
+                    cin.get();
+                }
+                continue; // Vai para próximo ciclo do while
+            }
+        }
+
+        // 9. EXECUÇÃO NORMAL
         if (tarefa.tempoRestante == tarefa.duracao)
             esperaTotal += tempoAtual - tarefa.ingresso;
 
@@ -494,12 +556,11 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             retornoTotal += tempoAtual - tarefa.ingresso;
             prontos.erase(it);
             currentId = -1;
-            // Aplica envelhecimento quando uma tarefa termina
             aplicarEnvelhecimento(prontos, -1);
         }
-    } // FIM DO while(true)
+    }
 
-    // SVG final
+    // 10. SVG FINAL
     vector<FatiaTarefa> mescladas;
     if (!fatias.empty())
     {
@@ -524,10 +585,9 @@ void simulador(vector<Tarefa> &tarefasOriginais)
     cout << fixed << setprecision(2);
     cout << "\nTempo medio de espera : " << esperaTotal / tarefasOriginais.size() << "\n";
     cout << "Tempo medio de retorno: " << retornoTotal / tarefasOriginais.size() << "\n";
+}
 
-} // FIM DA FUNÇÃO simulador
-
-// ESCALONADOR
+// ESCALONADOR - JÁ CORRETO
 int escalonador(std::vector<Tarefa> &prontos)
 {
     if (prontos.empty())
@@ -537,7 +597,6 @@ int escalonador(std::vector<Tarefa> &prontos)
 
     if (algoritmo == "SRTF")
     {
-        // Shortest Remaining Time First
         for (size_t i = 1; i < prontos.size(); ++i)
         {
             if (prontos[i].tempoRestante < prontos[best].tempoRestante)
@@ -553,7 +612,6 @@ int escalonador(std::vector<Tarefa> &prontos)
     }
     else if (algoritmo == "PRIOPEnv")
     {
-        // Prioridade Preemptiva com Envelhecimento
         for (size_t i = 1; i < prontos.size(); ++i)
         {
             double pBest = prontos[best].prioridadeDinamica;
@@ -565,9 +623,8 @@ int escalonador(std::vector<Tarefa> &prontos)
             }
         }
     }
-    else if (algoritmo == "PRIOP")
+    else if (algoritmo == "PRIOP" || algoritmo == "PRIO")
     {
-        // Prioridade Preemptiva (sem envelhecimento)
         for (size_t i = 1; i < prontos.size(); ++i)
         {
             int pBest = prontos[best].prioridade;
@@ -579,7 +636,7 @@ int escalonador(std::vector<Tarefa> &prontos)
             }
         }
     }
-    else if (algoritmo == "FIFO")
+    else if (algoritmo == "FIFO" || algoritmo == "SJF")
     {
         for (size_t i = 1; i < prontos.size(); ++i)
         {
@@ -591,7 +648,6 @@ int escalonador(std::vector<Tarefa> &prontos)
     }
     else
     {
-        // Default: FIFO
         for (size_t i = 1; i < prontos.size(); ++i)
         {
             if (prontos[i].ingresso < prontos[best].ingresso)
