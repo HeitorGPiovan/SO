@@ -192,41 +192,137 @@ void exportarGanttSVG(const vector<FatiaTarefa> &fatias, const vector<Tarefa> &t
 {
     if (fatias.empty())
         return;
+    
+    // Encontra tempo mAximo
     int tempoMax = 0;
     for (const auto &f : fatias)
         tempoMax = max(tempoMax, f.fim);
+    
+    // Adiciona margem para tarefas que podem terminar depois
+    for (const auto &t : tarefas)
+        tempoMax = max(tempoMax, t.ingresso + t.duracao + 2);
+    
+    // Agrupa fatias por tarefa
     map<int, vector<FatiaTarefa>> porTarefa;
     for (const auto &f : fatias)
         porTarefa[f.id].push_back(f);
-
+    
+    // Encontra cores das tarefas
+    map<int, string> coresTarefas;
+    for (const auto &t : tarefas)
+        coresTarefas[t.id] = get_hex_color(t.cor);
+    
+    // Encontra tempos de ingresso
+    map<int, int> ingressos;
+    for (const auto &t : tarefas)
+        ingressos[t.id] = t.ingresso;
+    
     ofstream svg(nome + "_gantt.svg");
     if (!svg)
         return;
-    double escala = 1200.0 / max(1, tempoMax);
-    int y = 70;
-    svg << "<svg width=\"1400\" height=\"" << 100 + (int)porTarefa.size() * 55 << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
-    svg << "<text x=\"700\" y=\"30\" font-size=\"24\" text-anchor=\"middle\">" << nome << "</text>\n";
+    
+    double escala = 40.0; // 40 pixels por unidade de tempo
+    int alturaLinha = 30;
+    int espacamentoLinhas = 10;
+    int margemSuperior = 80;
+    int margemEsquerda = 80;
+    int larguraTotal = margemEsquerda + (int)(tempoMax * escala) + 50;
+    int alturaTotal = margemSuperior + (int)porTarefa.size() * (alturaLinha + espacamentoLinhas) + 50;
+    
+    svg << "<svg width=\"" << larguraTotal << "\" height=\"" << alturaTotal 
+        << "\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    
+    // Fundo branco
+    svg << "<rect width=\"100%\" height=\"100%\" fill=\"white\"/>\n";
+    
+    // Titulo
+    svg << "<text x=\"" << larguraTotal/2 << "\" y=\"30\" font-size=\"20\" "
+        << "text-anchor=\"middle\" font-family=\"Arial\" font-weight=\"bold\">" 
+        << nome << "</text>\n";
+    
+    // Linha do tempo
+    int yLinhaTempo = margemSuperior - 10;
+    svg << "<line x1=\"" << margemEsquerda << "\" y1=\"" << yLinhaTempo 
+        << "\" x2=\"" << margemEsquerda + (int)(tempoMax * escala) 
+        << "\" y2=\"" << yLinhaTempo 
+        << "\" stroke=\"black\" stroke-width=\"2\"/>\n";
+    
+    // Marcadores de tempo
+    for (int t = 0; t <= tempoMax; t++)
+    {
+        int x = margemEsquerda + (int)(t * escala);
+        
+        // Marcador pequeno para cada unidade
+        svg << "<line x1=\"" << x << "\" y1=\"" << (yLinhaTempo - 3) 
+            << "\" x2=\"" << x << "\" y2=\"" << (yLinhaTempo + 3) 
+            << "\" stroke=\"black\" stroke-width=\"1\"/>\n";
+        
+        // Número a cada 5 unidades ou no inicio/fim
+        if (t == 0 || t == tempoMax || t % 5 == 0)
+        {
+            svg << "<text x=\"" << x << "\" y=\"" << (yLinhaTempo - 15) 
+                << "\" font-size=\"12\" text-anchor=\"middle\" font-family=\"Arial\">"
+                << t << "</text>\n";
+            
+            // Linha vertical tracejada
+            svg << "<line x1=\"" << x << "\" y1=\"" << yLinhaTempo 
+                << "\" x2=\"" << x << "\" y2=\"" 
+                << margemSuperior + (int)porTarefa.size() * (alturaLinha + espacamentoLinhas) 
+                << "\" stroke=\"#ccc\" stroke-width=\"1\" stroke-dasharray=\"2,2\"/>\n";
+        }
+    }
+    
+    // Desenha tarefas
+    int y = margemSuperior;
     for (const auto &[id, lista] : porTarefa)
     {
         string cor = "#95A5A6";
-        for (const auto &t : tarefas)
-            if (t.id == id)
-            {
-                cor = get_hex_color(t.cor);
-                break;
-            }
-        svg << "<text x=\"10\" y=\"" << y + 20 << "\">T" << id << "</text>\n";
+        if (coresTarefas.find(id) != coresTarefas.end())
+            cor = coresTarefas[id];
+        
+        // Label da tarefa
+        svg << "<text x=\"" << margemEsquerda - 10 << "\" y=\"" << y + alturaLinha/2 + 5 
+            << "\" font-size=\"14\" text-anchor=\"end\" font-family=\"Arial\">"
+            << "T" << id << "</text>\n";
+        
+        // Marcacao de ingresso (linha vertical com marcador)
+        if (ingressos.find(id) != ingressos.end())
+        {
+            int xIngresso = margemEsquerda + (int)(ingressos[id] * escala);
+            
+            // Linha vertical do ingresso
+            svg << "<line x1=\"" << xIngresso << "\" y1=\"" << y 
+                << "\" x2=\"" << xIngresso << "\" y2=\"" << (y + alturaLinha) 
+                << "\" stroke=\"" << cor << "\" stroke-width=\"2\" stroke-dasharray=\"3,3\"/>\n";
+            
+            // Triângulo indicador
+            svg << "<polygon points=\"" 
+                << xIngresso << "," << (y - 5) << " "
+                << (xIngresso - 5) << "," << y << " "
+                << (xIngresso + 5) << "," << y 
+                << "\" fill=\"" << cor << "\"/>\n";
+        }
+        
+        // Fatias de execucao
         for (const auto &f : lista)
         {
-            int x = 100 + (int)(f.inicio * escala);
-            int w = max(3, (int)(f.duracao * escala));
-            svg << "<rect x=\"" << x << "\" y=\"" << y << "\" width=\"" << w << "\" height=\"40\" fill=\"" << cor << "\" rx=\"5\"/>\n";
+            int x = margemEsquerda + (int)(f.inicio * escala);
+            int w = max(2, (int)(f.duracao * escala));
+            
+            // Retângulo da fatia
+            svg << "<rect x=\"" << x << "\" y=\"" << y 
+                << "\" width=\"" << w << "\" height=\"" << alturaLinha 
+                << "\" fill=\"" << cor << "\" rx=\"2\" ry=\"2\" "
+                << "stroke=\"#333\" stroke-width=\"1\"/>\n";
         }
-        y += 55;
+        
+        y += alturaLinha + espacamentoLinhas;
     }
+    
     svg << "</svg>";
     svg.close();
-    cout << "Gantt salvo como " << nome << "_gantt.svg\n";
+    
+    cout << "GrAfico Gantt salvo como " << nome << "_gantt.svg\n";
 }
 
 // ==================== CARREGAR CONFIGURACAO ====================
@@ -287,7 +383,7 @@ vector<Tarefa> carregarConfiguracao()
             string acao = campos[i];
             cout << "DEBUG: Processando evento: " << acao << endl; // Para debug
 
-            // EVENTOS MUTEX: ML01:03 ou MU01:05
+            // EVENTOS MUTEX
             if (acao.length() >= 7 && (acao[0] == 'M') && (acao[1] == 'L' || acao[1] == 'U'))
             {
                 try
@@ -313,7 +409,7 @@ vector<Tarefa> carregarConfiguracao()
                     cerr << "Erro ao processar mutex: " << acao << endl;
                 }
             }
-            // EVENTOS E/S: IO:02-03
+            // EVENTOS E/S:
             else if (acao.length() >= 6 && acao.substr(0, 3) == "IO:")
             {
                 try
@@ -398,7 +494,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
          { return a.ingresso < b.ingresso; });
 
     vector<Tarefa> prontos, bloqueadas;
-    vector<int> running_task;  // Histórico de execução para Gantt
+    vector<int> running_task;  // Histórico de execucao para Gantt
     vector<FatiaTarefa> fatias; // Fatias de tempo para SVG
 
     int tempoAtual = 0;
@@ -421,7 +517,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             chegouNovaTarefa = true;
         }
 
-        // 2. APLICA ENVELHECIMENTO PARA PRIOPEnv (requisito B.1) - SEMPRE no início do ciclo
+        // 2. APLICA ENVELHECIMENTO PARA PRIOPEnv 
         if (algoritmo == "PRIOPEnv" && !prontos.empty())
         {
             aplicarEnvelhecimento(prontos, currentId);
@@ -439,7 +535,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             {
                 int melhorId = prontos[melhorIdx].id;
                 
-                // Se a melhor tarefa não é a atual, precisa preemptar
+                // Se a melhor tarefa nao e a atual, precisa preemptar
                 if (melhorId != currentId)
                 {
                     // Para SRTF: preempta se nova tarefa tem tempo restante menor
@@ -489,11 +585,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                             }
                         }
                     }
-                    // Para RR: preempta se quantum expirou (verificado depois)
-                    else if (algoritmo == "RR")
-                    {
-                        // Quantum é verificado após execução
-                    }
                 }
             }
         }
@@ -512,7 +603,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                     prontos.push_back(desbloqueada);
                     it = bloqueadas.erase(it);
                     
-                    // Tarefa que voltou da E/S pode causar preempção
+                    // Tarefa que voltou da E/S pode causar preempcao
                     if (currentId != -1)
                     {
                         int melhorIdx = escalonador(prontos);
@@ -521,7 +612,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                             int melhorId = prontos[melhorIdx].id;
                             if (melhorId != currentId)
                             {
-                                // Lógica similar à anterior para verificar preempção
+                                // Lógica similar à anterior para verificar preempcao
                                 auto itAtual = find_if(prontos.begin(), prontos.end(),
                                                       [currentId](const Tarefa &t) { return t.id == currentId; });
                                 auto itMelhor = find_if(prontos.begin(), prontos.end(),
@@ -575,18 +666,18 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             }
         }
 
-        // 5. SE PRECISA PREEMPTAR, FAZ A PREEMPÇÃO
+        // 5. SE PRECISA PREEMPTAR, FAZ A PREEMPcaO
         if (devePreemptar && preemptId != -1)
         {
-            cout << ">>> PREEMPÇÃO: T" << currentId << " -> T" << preemptId 
+            cout << ">>> PREEMPcaO: T" << currentId << " -> T" << preemptId 
                  << " (t=" << tempoAtual << ")\n";
             
-            // A tarefa atual não executou neste tempo ainda
-            // Então apenas troca a tarefa atual
+            // A tarefa atual nao executou neste tempo ainda
+            // Entao apenas troca a tarefa atual
             currentId = preemptId;
             quantumCounter = quantum; // Reseta quantum para nova tarefa
             
-            // Se for PRIOPEnv, reseta prioridade da tarefa que começa a executar
+            // Se for PRIOPEnv, reseta prioridade da tarefa que comeca a executar
             if (algoritmo == "PRIOPEnv")
             {
                 auto itNova = find_if(prontos.begin(), prontos.end(),
@@ -598,7 +689,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             }
         }
 
-        // 6. SE NÃO HÁ TAREFA EXECUTANDO, ESCOLHE UMA NOVA
+        // 6. SE NaO HA TAREFA EXECUTANDO, ESCOLHE UMA NOVA
         if (currentId == -1 && !prontos.empty())
         {
             int idx = escalonador(prontos);
@@ -609,7 +700,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 cout << ">>> Escalonador escolheu T" << currentId 
                      << " para executar (t=" << tempoAtual << ")\n";
                 
-                // Se for PRIOPEnv, reseta prioridade da tarefa que começa
+                // Se for PRIOPEnv, reseta prioridade da tarefa que comeca
                 if (algoritmo == "PRIOPEnv")
                 {
                     prontos[idx].prioridadeDinamica = prontos[idx].prioridade;
@@ -617,12 +708,12 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             }
         }
 
-        // 7. VERIFICA FIM DA SIMULAÇÃO
+        // 7. VERIFICA FIM DA SIMULAcaO
         bool todasConcluidas = (currentId == -1 && prontos.empty() && 
                                pendentes.empty() && bloqueadas.empty());
         if (todasConcluidas)
         {
-            cout << "\n=== SIMULAÇÃO CONCLUÍDA no tempo " << tempoAtual << " ===\n";
+            cout << "\n=== SIMULAcaO CONCLUiDA no tempo " << tempoAtual << " ===\n";
             break;
         }
 
@@ -632,7 +723,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             running_task.push_back(-1); // -1 indica CPU ociosa
             cout << ">>> CPU ociosa (t=" << tempoAtual << ")\n";
             
-            // AVANÇA TEMPO
+            // AVANcA TEMPO
             tempoAtual++;
             
             // MODO PASSO-A-PASSO
@@ -661,7 +752,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         
         if (itTarefa == prontos.end())
         {
-            // Tarefa não encontrada (pode ter sido bloqueada)
+            // Tarefa nao encontrada
             currentId = -1;
             quantumCounter = quantum;
             continue;
@@ -669,7 +760,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         
         Tarefa &tarefa = *itTarefa;
 
-        // 10. REGISTRA TEMPO DE ESPERA (quando começa a executar pela primeira vez)
+        // 10. REGISTRA TEMPO DE ESPERA 
         if (tarefa.tempoRestante == tarefa.duracao)
         {
             esperaTotal += tempoAtual - tarefa.ingresso;
@@ -685,7 +776,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         fatias.push_back({tarefa.id, tempoAtual, tempoAtual + 1, 1});
         quantumCounter--;
 
-        // 12. VERIFICA EVENTOS DE E/S (requisito B.3)
+        // 12. VERIFICA EVENTOS DE E/S 
         bool processouEvento = false;
         
         // 12.1 Eventos de E/S
@@ -739,7 +830,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             continue;
         }
 
-        // 12.2 Eventos de Mutex (requisito B.2)
+        // 12.2 Eventos de Mutex 
         for (auto itMutex = tarefa.eventosMutex.begin(); itMutex != tarefa.eventosMutex.end();)
         {
             if (itMutex->first == tarefa.tempoExecutado)
@@ -747,7 +838,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 int mutexId = itMutex->second.second;
                 char operacao = itMutex->second.first; // 'L' ou 'U'
                 
-                if (operacao == 'L') // LOCK (solicitação)
+                if (operacao == 'L')
                 {
                     if (mutexes[mutexId].dono == -1)
                     {
@@ -773,7 +864,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                         processouEvento = true;
                     }
                 }
-                else if (operacao == 'U') // UNLOCK (liberação)
+                else if (operacao == 'U') 
                 {
                     if (mutexes[mutexId].dono == tarefa.id)
                     {
@@ -782,7 +873,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                         
                         mutexes[mutexId].dono = -1;
                         
-                        // Verifica se há tarefas esperando
+                        // Verifica se hA tarefas esperando
                         if (!mutexes[mutexId].filaEspera.empty())
                         {
                             int proxId = mutexes[mutexId].filaEspera.front();
@@ -834,30 +925,22 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             continue;
         }
 
-        // 13. VERIFICA SE TAREFA TERMINOU APÓS EXECUÇÃO
+        // 13. VERIFICA SE TAREFA TERMINOU APÓS EXECUcaO
         if (tarefa.tempoRestante <= 0)
         {
             retornoTotal += tempoAtual + 1 - tarefa.ingresso;
-            cout << ">>> T" << tarefa.id << " terminou execução (t=" 
+            cout << ">>> T" << tarefa.id << " terminou execucao (t=" 
                  << tempoAtual + 1 << ")\n";
             
             prontos.erase(itTarefa);
             currentId = -1;
             quantumCounter = quantum;
         }
-        // 14. VERIFICA PREEMPÇÃO POR QUANTUM (para RR)
-        else if (algoritmo == "RR" && quantumCounter <= 0)
-        {
-            cout << ">>> Quantum expirado para T" << tarefa.id 
-                 << " (t=" << tempoAtual << ")\n";
-            currentId = -1; // Força nova escolha no próximo ciclo
-            quantumCounter = quantum;
-        }
-
-        // 15. AVANÇA TEMPO
+        
+        // 15. AVANcA TEMPO
         tempoAtual++;
         
-        // 16. MODO PASSO-A-PASSO (após execução normal)
+        // 16. MODO PASSO-A-PASSO (após execucao normal)
         if (modoPasso && !processouEvento)
         {
             print_gantt(tarefasOriginais, running_task, tempoAtual);
@@ -876,7 +959,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
 
     // 14. EXIBE RESULTADOS FINAIS
     cout << "\n" << string(60, '=') << "\n";
-    cout << "RESUMO DA EXECUcaO - Grafico de Gantt\n";
+    cout << "RESUMO DA EXECUCAO - Grafico de Gantt\n";
     cout << string(60, '=') << "\n";
 
     print_gantt(tarefasOriginais, running_task, tempoAtual);
@@ -906,7 +989,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
     
     // 16. ESTATiSTICAS FINAIS
     cout << fixed << setprecision(2);
-    cout << "\n=== ESTATiSTICAS FINAIS ===\n";
+    cout << "\n=== ESTATISTICAS FINAIS ===\n";
     cout << "Tempo total de simulacao: " << tempoAtual << "\n";
     cout << "Tempo medio de espera: " << esperaTotal / tarefasOriginais.size() << "\n";
     cout << "Tempo medio de retorno: " << retornoTotal / tarefasOriginais.size() << "\n";
