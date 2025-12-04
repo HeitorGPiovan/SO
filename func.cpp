@@ -668,6 +668,38 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             prontos.push_back(t);
         }
 
+        // Deadlock detection: se não há prontos nem pendentes, mas há bloqueadas sem IO, provavelmente há deadlock.
+        if (currentId == -1 && prontos.empty() && pendentes.empty() && !bloqueadas.empty()) {
+            bool anyIO = false;
+            for (const auto &b : bloqueadas) {
+                if (b.remainingIO > 0) { anyIO = true; break; }
+            }
+            if (!anyIO) {
+                cout << ">>> ERRO: Deadlock detectado no tempo " << tempoAtual
+                     << " - tarefas bloqueadas por mutex sem E/S em andamento!" << "\n";
+
+                cout << "   Bloqueadas: ";
+                for (const auto &b : bloqueadas) cout << "T" << b.id << " ";
+                cout << "\n";
+
+                cout << "   Estado dos mutexes:\n";
+                for (const auto &p : mutexes) {
+                    const auto &m = p.second;
+                    cout << "    M" << setw(2) << p.first << " -> dono="
+                         << ((m.dono == -1) ? string("LIVRE") : (string("T") + to_string(m.dono)));
+                    if (!m.filaEspera.empty()) {
+                        cout << " (espera:";
+                        for (int x : m.filaEspera) cout << " T" << x;
+                        cout << ")";
+                    }
+                    cout << "\n";
+                }
+
+                cout << ">>> Interrompendo simulacao para evitar loop infinito." << "\n";
+                break;
+            }
+        }
+
         // 4. VERIFICA SE HÁ TAREFAS PARA EXECUTAR
         if (currentId == -1 && !prontos.empty())
         {
