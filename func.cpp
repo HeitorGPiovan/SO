@@ -321,7 +321,7 @@ vector<Tarefa> carregarConfiguracao()
                     // Remove "IO:"
                     string ioStr = acao.substr(3);
 
-                    // Encontra o hífen
+                    // Encontra o hifen
                     size_t dashPos = ioStr.find('-');
                     if (dashPos != string::npos)
                     {
@@ -337,7 +337,7 @@ vector<Tarefa> carregarConfiguracao()
                     }
                     else
                     {
-                        // Formato sem hífen: assume tempoRel=1
+                        // Formato sem hifen: assume tempoRel=1
                         int duracao = stoi(ioStr);
                         t.eventosIO.emplace_back(1, duracao);
 
@@ -405,32 +405,10 @@ void simulador(vector<Tarefa> &tarefasOriginais)
     double esperaTotal = 0, retornoTotal = 0;
     int currentId = -1;  // ID da tarefa executando atualmente
 
-    // Histórico para modo passo-a-passo (requisito 1.5.2)
-    vector<vector<Tarefa>> historicoProntos;
-    vector<vector<Tarefa>> historicoPendentes;
-    vector<vector<Tarefa>> historicoBloqueadas;
-    vector<int> historicoRunningTask;
-    vector<int> historicoCurrentId;
-    vector<int> historicoTempo;
-    vector<map<int, Mutex>> historicoMutexes;
-
     bool modoPasso = (modoExecucao == "passo");
-    int passoAtual = 0;
-    bool retroceder = false;
 
     while (true)
     {
-        // SALVA ESTADO ATUAL NO HISTÓRICO (requisito 1.5.2)
-        if (modoPasso) {
-            historicoProntos.push_back(prontos);
-            historicoPendentes.push_back(pendentes);
-            historicoBloqueadas.push_back(bloqueadas);
-            historicoRunningTask.push_back(currentId);
-            historicoCurrentId.push_back(currentId);
-            historicoTempo.push_back(tempoAtual);
-            historicoMutexes.push_back(mutexes);
-        }
-
         // 1. MOVIMENTA TAREFAS DE PENDENTES PARA PRONTOS (quando chega tempo de ingresso)
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
@@ -471,7 +449,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             aplicarEnvelhecimento(prontos, currentId);
         }
 
-        // 4. SE NaO HÁ TAREFA EXECUTANDO, ESCOLHE UMA NOVA
+        // 4. SE NaO Ha TAREFA EXECUTANDO, ESCOLHE UMA NOVA
         if (currentId == -1 && !prontos.empty())
         {
             int idx = escalonador(prontos);
@@ -488,7 +466,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                                pendentes.empty() && bloqueadas.empty());
         if (todasConcluidas)
         {
-            cout << "\n=== SIMULACAO CONCLUIDA no tempo " << tempoAtual << " ===\n";
+            cout << "\n=== SIMULAcaO CONCLUiDA no tempo " << tempoAtual << " ===\n";
             break;
         }
 
@@ -508,51 +486,13 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 print_gantt(tarefasOriginais, running_task, tempoAtual);
                 print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
                 
-                // Menu de controle
-                cout << "\n=== CONTROLE PASSO-A-PASSO ===\n";
-                cout << "1. Avancar 1 passo\n";
-                cout << "2. Retroceder 1 passo\n";
-                cout << "3. Avancar ate o final\n";
-                cout << "Escolha: ";
+                cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
+                string input;
+                getline(cin, input);
                 
-                string opcao;
-                getline(cin, opcao);
-                
-                if (opcao == "2" && passoAtual > 0) {
-                    // RETROCEDE 1 PASSO
-                    passoAtual--;
-                    prontos = historicoProntos[passoAtual];
-                    pendentes = historicoPendentes[passoAtual];
-                    bloqueadas = historicoBloqueadas[passoAtual];
-                    currentId = historicoCurrentId[passoAtual];
-                    tempoAtual = historicoTempo[passoAtual];
-                    mutexes = historicoMutexes[passoAtual];
-                    
-                    // Ajusta running_task
-                    if (running_task.size() > 0) {
-                        running_task.pop_back();
-                    }
-                    
-                    // Remove histórico futuro
-                    historicoProntos.resize(passoAtual);
-                    historicoPendentes.resize(passoAtual);
-                    historicoBloqueadas.resize(passoAtual);
-                    historicoRunningTask.resize(passoAtual);
-                    historicoCurrentId.resize(passoAtual);
-                    historicoTempo.resize(passoAtual);
-                    historicoMutexes.resize(passoAtual);
-                    
-                    cout << ">>> Retrocedido para passo " << passoAtual << "\n";
-                    continue;
-                }
-                else if (opcao == "3") {
-                    // MUDAR PARA MODO COMPLETO
+                if (input == "c" || input == "C") {
                     modoPasso = false;
-                    cout << ">>> Continuando ate o final...\n";
-                }
-                else {
-                    // AVANcA NORMALMENTE
-                    passoAtual++;
+                    cout << ">>> Continuando em modo completo...\n";
                 }
             }
             continue;
@@ -629,25 +569,12 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 print_gantt(tarefasOriginais, running_task, tempoAtual);
                 print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
                 
-                cout << "\n=== CONTROLE PASSO-A-PASSO ===\n";
-                cout << "1. Avancar 1 passo\n";
-                cout << "2. Retroceder 1 passo\n";
-                cout << "3. Avancar ate o final\n";
-                cout << "Escolha: ";
+                cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
+                string input;
+                getline(cin, input);
                 
-                string opcao;
-                getline(cin, opcao);
-                
-                if (opcao == "2" && passoAtual > 0) {
-                    passoAtual--;
-                    // Restaura estado (código similar ao anterior)
-                    continue;
-                }
-                else if (opcao == "3") {
+                if (input == "c" || input == "C") {
                     modoPasso = false;
-                }
-                else {
-                    passoAtual++;
                 }
             }
             continue;
@@ -695,7 +622,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                         
                         mutexes[mutexId].dono = -1;
                         
-                        // Verifica se há tarefas esperando
+                        // Verifica se ha tarefas esperando
                         if (!mutexes[mutexId].filaEspera.empty())
                         {
                             int proxId = mutexes[mutexId].filaEspera.front();
@@ -733,55 +660,15 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             
             if (modoPasso)
             {
-                // Exibe estado atual
                 print_gantt(tarefasOriginais, running_task, tempoAtual);
                 print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
                 
-                // Menu de controle
-                cout << "\n=== CONTROLE PASSO-A-PASSO ===\n";
-                cout << "1. Avancar 1 passo\n";
-                cout << "2. Retroceder 1 passo\n";
-                cout << "3. Avancar ate o final\n";
-                cout << "Escolha: ";
+                cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
+                string input;
+                getline(cin, input);
                 
-                string opcao;
-                getline(cin, opcao);
-                
-                if (opcao == "2" && passoAtual > 0) {
-                    // RETROCEDE 1 PASSO
-                    passoAtual--;
-                    prontos = historicoProntos[passoAtual];
-                    pendentes = historicoPendentes[passoAtual];
-                    bloqueadas = historicoBloqueadas[passoAtual];
-                    currentId = historicoCurrentId[passoAtual];
-                    tempoAtual = historicoTempo[passoAtual];
-                    mutexes = historicoMutexes[passoAtual];
-                    
-                    // Ajusta running_task
-                    if (running_task.size() > 0) {
-                        running_task.pop_back();
-                    }
-                    
-                    // Remove histórico futuro
-                    historicoProntos.resize(passoAtual);
-                    historicoPendentes.resize(passoAtual);
-                    historicoBloqueadas.resize(passoAtual);
-                    historicoRunningTask.resize(passoAtual);
-                    historicoCurrentId.resize(passoAtual);
-                    historicoTempo.resize(passoAtual);
-                    historicoMutexes.resize(passoAtual);
-                    
-                    cout << ">>> Retrocedido para passo " << passoAtual << "\n";
-                    continue;
-                }
-                else if (opcao == "3") {
-                    // MUDAR PARA MODO COMPLETO
+                if (input == "c" || input == "C") {
                     modoPasso = false;
-                    cout << ">>> Continuando ate o final...\n";
-                }
-                else {
-                    // AVANcA NORMALMENTE
-                    passoAtual++;
                 }
             }
             continue;
@@ -807,33 +694,20 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             print_gantt(tarefasOriginais, running_task, tempoAtual);
             print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
             
-            cout << "\n=== CONTROLE PASSO-A-PASSO ===\n";
-            cout << "1. Avancar 1 passo\n";
-            cout << "2. Retroceder 1 passo\n";
-            cout << "3. Avancar ate o final\n";
-            cout << "Escolha: ";
+            cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
+            string input;
+            getline(cin, input);
             
-            string opcao;
-            getline(cin, opcao);
-            
-            if (opcao == "2" && passoAtual > 0) {
-                passoAtual--;
-                // Restaura estado
-                continue;
-            }
-            else if (opcao == "3") {
+            if (input == "c" || input == "C") {
                 modoPasso = false;
-                cout << ">>> Continuando ate o final...\n";
-            }
-            else {
-                passoAtual++;
+                cout << ">>> Continuando em modo completo...\n";
             }
         }
     }
 
     // 14. EXIBE RESULTADOS FINAIS
     cout << "\n" << string(60, '=') << "\n";
-    cout << "RESUMO DA EXECUCAO - Grafico de Gantt\n";
+    cout << "RESUMO DA EXECUcaO - Grafico de Gantt\n";
     cout << string(60, '=') << "\n";
 
     print_gantt(tarefasOriginais, running_task, tempoAtual);
@@ -861,16 +735,13 @@ void simulador(vector<Tarefa> &tarefasOriginais)
 
     exportarGanttSVG(mescladas, tarefasOriginais, algoritmo);
     
-    // 16. ESTATÍSTICAS FINAIS
+    // 16. ESTATiSTICAS FINAIS
     cout << fixed << setprecision(2);
-    cout << "\n=== ESTATISTICAS FINAIS ===\n";
+    cout << "\n=== ESTATiSTICAS FINAIS ===\n";
     cout << "Tempo total de simulacao: " << tempoAtual << "\n";
     cout << "Tempo medio de espera: " << esperaTotal / tarefasOriginais.size() << "\n";
     cout << "Tempo medio de retorno: " << retornoTotal / tarefasOriginais.size() << "\n";
     cout << "Algoritmo usado: " << algoritmo << "\n";
-    if (algoritmo == "PRIOPEnv") {
-        cout << "Alpha (envelhecimento): " << alpha << "\n";
-    }
 }
 
 // ==================== ESCALONADOR ====================
