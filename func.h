@@ -42,6 +42,5 @@ void exportarGanttSVG(const std::vector<FatiaTarefa>& fatias, const std::vector<
 std::vector<Tarefa> carregarConfiguracao();
 int escalonador(std::vector<Tarefa>& prontos);
 void simulador(std::vector<Tarefa>& tarefasOriginais);
-void aplicarEnvelhecimento(std::vector<Tarefa>& prontos); 
-
+void aplicarEnvelhecimento(std::vector<Tarefa>& prontos, int tarefaExecutandoId);
 #endif

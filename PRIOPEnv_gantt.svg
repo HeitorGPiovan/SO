@@ -1,7 +1,146 @@
-<svg width="1400" height="210" xmlns="http://www.w3.org/2000/svg">
-<text x="700" y="30" font-size="24" text-anchor="middle">PRIOPEnv</text>
-<text x="10" y="90">T1</text>
-<rect x="580" y="70" width="720" height="40" fill="#E74C3C" rx="5"/>
-<text x="10" y="145">T2</text>
-<rect x="100" y="125" width="480" height="40" fill="#27AE60" rx="5"/>
+<svg width="2610" height="530" xmlns="http://www.w3.org/2000/svg">
+<rect width="100%" height="100%" fill="white"/>
+<text x="1305" y="30" font-size="20" text-anchor="middle" font-family="Arial" font-weight="bold">PRIOPEnv</text>
+<line x1="80" y1="70" x2="2560" y2="70" stroke="black" stroke-width="2"/>
+<line x1="80" y1="67" x2="80" y2="73" stroke="black" stroke-width="1"/>
+<text x="80" y="55" font-size="12" text-anchor="middle" font-family="Arial">0</text>
+<line x1="80" y1="70" x2="80" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="120" y1="67" x2="120" y2="73" stroke="black" stroke-width="1"/>
+<line x1="160" y1="67" x2="160" y2="73" stroke="black" stroke-width="1"/>
+<line x1="200" y1="67" x2="200" y2="73" stroke="black" stroke-width="1"/>
+<line x1="240" y1="67" x2="240" y2="73" stroke="black" stroke-width="1"/>
+<line x1="280" y1="67" x2="280" y2="73" stroke="black" stroke-width="1"/>
+<text x="280" y="55" font-size="12" text-anchor="middle" font-family="Arial">5</text>
+<line x1="280" y1="70" x2="280" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="320" y1="67" x2="320" y2="73" stroke="black" stroke-width="1"/>
+<line x1="360" y1="67" x2="360" y2="73" stroke="black" stroke-width="1"/>
+<line x1="400" y1="67" x2="400" y2="73" stroke="black" stroke-width="1"/>
+<line x1="440" y1="67" x2="440" y2="73" stroke="black" stroke-width="1"/>
+<line x1="480" y1="67" x2="480" y2="73" stroke="black" stroke-width="1"/>
+<text x="480" y="55" font-size="12" text-anchor="middle" font-family="Arial">10</text>
+<line x1="480" y1="70" x2="480" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="520" y1="67" x2="520" y2="73" stroke="black" stroke-width="1"/>
+<line x1="560" y1="67" x2="560" y2="73" stroke="black" stroke-width="1"/>
+<line x1="600" y1="67" x2="600" y2="73" stroke="black" stroke-width="1"/>
+<line x1="640" y1="67" x2="640" y2="73" stroke="black" stroke-width="1"/>
+<line x1="680" y1="67" x2="680" y2="73" stroke="black" stroke-width="1"/>
+<text x="680" y="55" font-size="12" text-anchor="middle" font-family="Arial">15</text>
+<line x1="680" y1="70" x2="680" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="720" y1="67" x2="720" y2="73" stroke="black" stroke-width="1"/>
+<line x1="760" y1="67" x2="760" y2="73" stroke="black" stroke-width="1"/>
+<line x1="800" y1="67" x2="800" y2="73" stroke="black" stroke-width="1"/>
+<line x1="840" y1="67" x2="840" y2="73" stroke="black" stroke-width="1"/>
+<line x1="880" y1="67" x2="880" y2="73" stroke="black" stroke-width="1"/>
+<text x="880" y="55" font-size="12" text-anchor="middle" font-family="Arial">20</text>
+<line x1="880" y1="70" x2="880" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="920" y1="67" x2="920" y2="73" stroke="black" stroke-width="1"/>
+<line x1="960" y1="67" x2="960" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1000" y1="67" x2="1000" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1040" y1="67" x2="1040" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1080" y1="67" x2="1080" y2="73" stroke="black" stroke-width="1"/>
+<text x="1080" y="55" font-size="12" text-anchor="middle" font-family="Arial">25</text>
+<line x1="1080" y1="70" x2="1080" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="1120" y1="67" x2="1120" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1160" y1="67" x2="1160" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1200" y1="67" x2="1200" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1240" y1="67" x2="1240" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1280" y1="67" x2="1280" y2="73" stroke="black" stroke-width="1"/>
+<text x="1280" y="55" font-size="12" text-anchor="middle" font-family="Arial">30</text>
+<line x1="1280" y1="70" x2="1280" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="1320" y1="67" x2="1320" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1360" y1="67" x2="1360" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1400" y1="67" x2="1400" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1440" y1="67" x2="1440" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1480" y1="67" x2="1480" y2="73" stroke="black" stroke-width="1"/>
+<text x="1480" y="55" font-size="12" text-anchor="middle" font-family="Arial">35</text>
+<line x1="1480" y1="70" x2="1480" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="1520" y1="67" x2="1520" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1560" y1="67" x2="1560" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1600" y1="67" x2="1600" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1640" y1="67" x2="1640" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1680" y1="67" x2="1680" y2="73" stroke="black" stroke-width="1"/>
+<text x="1680" y="55" font-size="12" text-anchor="middle" font-family="Arial">40</text>
+<line x1="1680" y1="70" x2="1680" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="1720" y1="67" x2="1720" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1760" y1="67" x2="1760" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1800" y1="67" x2="1800" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1840" y1="67" x2="1840" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1880" y1="67" x2="1880" y2="73" stroke="black" stroke-width="1"/>
+<text x="1880" y="55" font-size="12" text-anchor="middle" font-family="Arial">45</text>
+<line x1="1880" y1="70" x2="1880" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="1920" y1="67" x2="1920" y2="73" stroke="black" stroke-width="1"/>
+<line x1="1960" y1="67" x2="1960" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2000" y1="67" x2="2000" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2040" y1="67" x2="2040" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2080" y1="67" x2="2080" y2="73" stroke="black" stroke-width="1"/>
+<text x="2080" y="55" font-size="12" text-anchor="middle" font-family="Arial">50</text>
+<line x1="2080" y1="70" x2="2080" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="2120" y1="67" x2="2120" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2160" y1="67" x2="2160" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2200" y1="67" x2="2200" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2240" y1="67" x2="2240" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2280" y1="67" x2="2280" y2="73" stroke="black" stroke-width="1"/>
+<text x="2280" y="55" font-size="12" text-anchor="middle" font-family="Arial">55</text>
+<line x1="2280" y1="70" x2="2280" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="2320" y1="67" x2="2320" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2360" y1="67" x2="2360" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2400" y1="67" x2="2400" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2440" y1="67" x2="2440" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2480" y1="67" x2="2480" y2="73" stroke="black" stroke-width="1"/>
+<text x="2480" y="55" font-size="12" text-anchor="middle" font-family="Arial">60</text>
+<line x1="2480" y1="70" x2="2480" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<line x1="2520" y1="67" x2="2520" y2="73" stroke="black" stroke-width="1"/>
+<line x1="2560" y1="67" x2="2560" y2="73" stroke="black" stroke-width="1"/>
+<text x="2560" y="55" font-size="12" text-anchor="middle" font-family="Arial">62</text>
+<line x1="2560" y1="70" x2="2560" y2="480" stroke="#ccc" stroke-width="1" stroke-dasharray="2,2"/>
+<text x="70" y="100" font-size="14" text-anchor="end" font-family="Arial">T1</text>
+<line x1="80" y1="80" x2="80" y2="110" stroke="#0000FF" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="80,75 75,80 85,80" fill="#0000FF"/>
+<rect x="200" y="80" width="200" height="30" fill="#0000FF" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="1240" y="80" width="40" height="30" fill="#0000FF" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="140" font-size="14" text-anchor="end" font-family="Arial">T2</text>
+<line x1="80" y1="120" x2="80" y2="150" stroke="#00FF00" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="80,115 75,120 85,120" fill="#00FF00"/>
+<rect x="80" y="120" width="120" height="30" fill="#00FF00" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="880" y="120" width="40" height="30" fill="#00FF00" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="180" font-size="14" text-anchor="end" font-family="Arial">T3</text>
+<line x1="200" y1="160" x2="200" y2="190" stroke="#FF0000" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="200,155 195,160 205,160" fill="#FF0000"/>
+<rect x="480" y="160" width="200" height="30" fill="#FF0000" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="1320" y="160" width="160" height="30" fill="#FF0000" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="220" font-size="14" text-anchor="end" font-family="Arial">T4</text>
+<line x1="280" y1="200" x2="280" y2="230" stroke="#000055" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="280,195 275,200 285,200" fill="#000055"/>
+<rect x="400" y="200" width="80" height="30" fill="#000055" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="1080" y="200" width="160" height="30" fill="#000055" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="260" font-size="14" text-anchor="end" font-family="Arial">T5</text>
+<line x1="360" y1="240" x2="360" y2="270" stroke="#005500" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="360,235 355,240 365,240" fill="#005500"/>
+<rect x="920" y="240" width="160" height="30" fill="#005500" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="300" font-size="14" text-anchor="end" font-family="Arial">T6</text>
+<line x1="880" y1="280" x2="880" y2="310" stroke="#550000" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="880,275 875,280 885,280" fill="#550000"/>
+<rect x="1520" y="280" width="200" height="30" fill="#550000" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="2360" y="280" width="80" height="30" fill="#550000" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="340" font-size="14" text-anchor="end" font-family="Arial">T7</text>
+<line x1="880" y1="320" x2="880" y2="350" stroke="#0000AA" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="880,315 875,320 885,320" fill="#0000AA"/>
+<rect x="1720" y="320" width="200" height="30" fill="#0000AA" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="2440" y="320" width="80" height="30" fill="#0000AA" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="380" font-size="14" text-anchor="end" font-family="Arial">T8</text>
+<line x1="480" y1="360" x2="480" y2="390" stroke="#00AA00" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="480,355 475,360 485,360" fill="#00AA00"/>
+<rect x="1280" y="360" width="40" height="30" fill="#00AA00" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="2000" y="360" width="200" height="30" fill="#00AA00" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="2520" y="360" width="40" height="30" fill="#00AA00" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="420" font-size="14" text-anchor="end" font-family="Arial">T9</text>
+<line x1="1280" y1="400" x2="1280" y2="430" stroke="#AA0000" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="1280,395 1275,400 1285,400" fill="#AA0000"/>
+<rect x="1920" y="400" width="80" height="30" fill="#AA0000" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<text x="70" y="460" font-size="14" text-anchor="end" font-family="Arial">T10</text>
+<line x1="240" y1="440" x2="240" y2="470" stroke="#AA00FF" stroke-width="2" stroke-dasharray="3,3"/>
+<polygon points="240,435 235,440 245,440" fill="#AA00FF"/>
+<rect x="680" y="440" width="200" height="30" fill="#AA00FF" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="1480" y="440" width="40" height="30" fill="#AA00FF" rx="2" ry="2" stroke="#333" stroke-width="1"/>
+<rect x="2200" y="440" width="160" height="30" fill="#AA00FF" rx="2" ry="2" stroke="#333" stroke-width="1"/>
 </svg>

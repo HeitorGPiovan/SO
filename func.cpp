@@ -341,20 +341,33 @@ vector<Tarefa> carregarConfiguracao()
     bool primeira = true;
     while (getline(arq, linha))
     {
+        // Remove espaços em branco no início e fim
+        linha.erase(0, linha.find_first_not_of(" \t"));
+        linha.erase(linha.find_last_not_of(" \t") + 1);
+        
         if (linha.empty() || linha[0] == '#')
             continue;
+        
         stringstream ss(linha);
         string tok;
 
         if (primeira)
         {
             getline(ss, algoritmo, ';');
-            getline(ss, tok, ';');
-            quantum = tok.empty() ? 2 : stoi(tok);
+            // Remove espaços do algoritmo
+            algoritmo.erase(remove(algoritmo.begin(), algoritmo.end(), ' '), algoritmo.end());
+            
+            if (getline(ss, tok, ';')) {
+                tok.erase(remove(tok.begin(), tok.end(), ' '), tok.end());
+                quantum = tok.empty() ? 2 : stoi(tok);
+            }
+            
             if (algoritmo == "PRIOPEnv")
             {
-                getline(ss, tok, ';');
-                alpha = tok.empty() ? 0.6 : stod(tok);
+                if (getline(ss, tok, ';')) {
+                    tok.erase(remove(tok.begin(), tok.end(), ' '), tok.end());
+                    alpha = tok.empty() ? 0.6 : stod(tok);
+                }
             }
             primeira = false;
             continue;
@@ -364,26 +377,89 @@ vector<Tarefa> carregarConfiguracao()
         vector<string> campos;
         while (getline(ss, tok, ';'))
             campos.push_back(tok);
-        if (campos.size() < 5)
+        
+        if (campos.size() < 5) {
+            cerr << "Erro: linha com menos de 5 campos: " << linha << endl;
             continue;
+        }
 
-        t.id = stoi(campos[0]);
+        // CONVERTE ID NO FORMATO "tXX" PARA NÚMERO
+        string idStr = campos[0];
+        int idNum = 0;
+        
+        // Remove espaços
+        idStr.erase(remove(idStr.begin(), idStr.end(), ' '), idStr.end());
+        
+        // Remove 't' do início se existir
+        if (!idStr.empty() && (idStr[0] == 't' || idStr[0] == 'T'))
+        {
+            idStr = idStr.substr(1); // Remove primeiro caractere
+        }
+        
+        try {
+            if (!idStr.empty()) {
+                idNum = stoi(idStr);
+            } else {
+                cerr << "Erro: ID vazio na linha: " << linha << endl;
+                continue;
+            }
+        } catch (const std::invalid_argument& e) {
+            cerr << "Erro: ID invalido '" << campos[0] << "' na linha: " << linha << endl;
+            continue;
+        }
+        
+        t.id = idNum;
+        
+        // Cor (pode ter # ou não)
         t.cor = campos[1];
-        t.ingresso = stoi(campos[2]);
-        t.duracao = stoi(campos[3]);
-        t.prioridade = stoi(campos[4]);
+        t.cor.erase(remove(t.cor.begin(), t.cor.end(), ' '), t.cor.end());
+        
+        // Ingresso
+        try {
+            string ingressoStr = campos[2];
+            ingressoStr.erase(remove(ingressoStr.begin(), ingressoStr.end(), ' '), ingressoStr.end());
+            t.ingresso = ingressoStr.empty() ? 0 : stoi(ingressoStr);
+        } catch (const std::invalid_argument& e) {
+            cerr << "Erro: ingresso invalido '" << campos[2] << "' para T" << t.id << endl;
+            t.ingresso = 0;
+        }
+        
+        // Duração
+        try {
+            string duracaoStr = campos[3];
+            duracaoStr.erase(remove(duracaoStr.begin(), duracaoStr.end(), ' '), duracaoStr.end());
+            t.duracao = duracaoStr.empty() ? 0 : stoi(duracaoStr);
+        } catch (const std::invalid_argument& e) {
+            cerr << "Erro: duracao invalida '" << campos[3] << "' para T" << t.id << endl;
+            t.duracao = 0;
+        }
+        
+        // Prioridade
+        try {
+            string prioridadeStr = campos[4];
+            prioridadeStr.erase(remove(prioridadeStr.begin(), prioridadeStr.end(), ' '), prioridadeStr.end());
+            t.prioridade = prioridadeStr.empty() ? 1 : stoi(prioridadeStr);
+        } catch (const std::invalid_argument& e) {
+            cerr << "Erro: prioridade invalida '" << campos[4] << "' para T" << t.id << endl;
+            t.prioridade = 1;
+        }
+        
         t.prioridadeDinamica = t.prioridade;
         t.tempoRestante = t.duracao;
         t.tempoExecutado = 0;
         t.bloqueada = false;
         t.remainingIO = 0;
 
+        // Processa eventos (campos 5 em diante)
         for (size_t i = 5; i < campos.size(); ++i)
         {
             string acao = campos[i];
-            cout << "DEBUG: Processando evento: " << acao << endl; // Para debug
+            // Remove espaços
+            acao.erase(remove(acao.begin(), acao.end(), ' '), acao.end());
+            
+            if (acao.empty()) continue;
 
-            // EVENTOS MUTEX
+            // EVENTOS MUTEX: ML01:03 ou MU01:05
             if (acao.length() >= 7 && (acao[0] == 'M') && (acao[1] == 'L' || acao[1] == 'U'))
             {
                 try
@@ -394,22 +470,32 @@ vector<Tarefa> carregarConfiguracao()
                     size_t colonPos = acao.find(':');
                     if (colonPos != string::npos && colonPos >= 4)
                     {
-                        int mutexId = stoi(acao.substr(2, colonPos - 2));
-                        int tempoRel = stoi(acao.substr(colonPos + 1));
+                        string mutexIdStr = acao.substr(2, colonPos - 2);
+                        int mutexId = 0;
+                        
+                        // Remove zeros à esquerda se necessário
+                        if (!mutexIdStr.empty()) {
+                            mutexId = stoi(mutexIdStr);
+                        }
+                        
+                        string tempoStr = acao.substr(colonPos + 1);
+                        tempoStr.erase(remove(tempoStr.begin(), tempoStr.end(), ' '), tempoStr.end());
+                        int tempoRel = stoi(tempoStr);
 
                         t.eventosMutex.emplace_back(tempoRel, make_pair(tipo, mutexId));
-                        mutexes[mutexId];
+                        mutexes[mutexId]; // Garante que o mutex existe
 
                         cout << "DEBUG: Mutex " << tipo << " id=" << mutexId
-                             << " t=" << tempoRel << endl;
+                             << " t=" << tempoRel << " para T" << t.id << endl;
                     }
                 }
-                catch (...)
+                catch (const exception& e)
                 {
-                    cerr << "Erro ao processar mutex: " << acao << endl;
+                    cerr << "Erro ao processar mutex '" << acao << "' para T" << t.id 
+                         << " - " << e.what() << endl;
                 }
             }
-            // EVENTOS E/S:
+            // EVENTOS E/S: IO:02-03
             else if (acao.length() >= 6 && acao.substr(0, 3) == "IO:")
             {
                 try
@@ -417,45 +503,64 @@ vector<Tarefa> carregarConfiguracao()
                     // Remove "IO:"
                     string ioStr = acao.substr(3);
 
-                    // Encontra o hifen
+                    // Encontra o hífen
                     size_t dashPos = ioStr.find('-');
                     if (dashPos != string::npos)
                     {
                         string tempoStr = ioStr.substr(0, dashPos);
                         string duraStr = ioStr.substr(dashPos + 1);
-
+                        
+                        // Remove espaços
+                        tempoStr.erase(remove(tempoStr.begin(), tempoStr.end(), ' '), tempoStr.end());
+                        duraStr.erase(remove(duraStr.begin(), duraStr.end(), ' '), duraStr.end());
+                        
                         int tempoRel = stoi(tempoStr);
                         int duracao = stoi(duraStr);
 
                         t.eventosIO.emplace_back(tempoRel, duracao);
 
-                        cout << "DEBUG: E/S t=" << tempoRel << " dur=" << duracao << endl;
+                        cout << "DEBUG: E/S t=" << tempoRel << " dur=" << duracao 
+                             << " para T" << t.id << endl;
                     }
                     else
                     {
-                        // Formato sem hifen: assume tempoRel=1
+                        // Formato sem hífen
+                        ioStr.erase(remove(ioStr.begin(), ioStr.end(), ' '), ioStr.end());
                         int duracao = stoi(ioStr);
                         t.eventosIO.emplace_back(1, duracao);
 
-                        cout << "DEBUG: E/S (formato antigo) t=1 dur=" << duracao << endl;
+                        cout << "DEBUG: E/S t=1 dur=" << duracao 
+                             << " para T" << t.id << endl;
                     }
                 }
-                catch (...)
+                catch (const exception& e)
                 {
-                    cerr << "Erro ao processar E/S: " << acao << endl;
+                    cerr << "Erro ao processar E/S '" << acao << "' para T" << t.id 
+                         << " - " << e.what() << endl;
                 }
             }
-            else
+            else if (!acao.empty())
             {
-                cerr << "Formato de evento desconhecido: " << acao << endl;
+                cerr << "Formato de evento desconhecido: '" << acao 
+                     << "' para T" << t.id << endl;
             }
         }
+        
+        // Ordena eventos de mutex por tempo
         sort(t.eventosMutex.begin(), t.eventosMutex.end());
 
         tarefas.push_back(t);
     }
+    
+    if (tarefas.empty()) {
+        cerr << "Aviso: Nenhuma tarefa carregada do arquivo!\n";
+    } else {
+        cout << "Carregadas " << tarefas.size() << " tarefas do arquivo." << endl;
+    }
+    
     return tarefas;
 }
+
 // ==================== ENVELHECIMENTO ====================
 
 void aplicarEnvelhecimento(vector<Tarefa> &prontos, int tarefaExecutandoId)
@@ -468,6 +573,8 @@ void aplicarEnvelhecimento(vector<Tarefa> &prontos, int tarefaExecutandoId)
         if (t.id != tarefaExecutandoId)
         {
             t.prioridadeDinamica += alpha;
+            cout << ">>> Envelhecimento: T" << t.id << " prio " 
+                 << (t.prioridadeDinamica - alpha) << " -> " << t.prioridadeDinamica << endl;
         }
     }
 }
@@ -494,166 +601,56 @@ void simulador(vector<Tarefa> &tarefasOriginais)
          { return a.ingresso < b.ingresso; });
 
     vector<Tarefa> prontos, bloqueadas;
-    vector<int> running_task;  // Histórico de execucao para Gantt
-    vector<FatiaTarefa> fatias; // Fatias de tempo para SVG
+    vector<int> running_task;
+    vector<FatiaTarefa> fatias;
 
     int tempoAtual = 0;
     double esperaTotal = 0, retornoTotal = 0;
-    int currentId = -1;  // ID da tarefa executando atualmente
-    int quantumCounter = quantum; // Contador de quantum para RR/PRIOP
+    int currentId = -1;
+    int quantumCounter = quantum;
 
     bool modoPasso = (modoExecucao == "passo");
 
     while (true)
     {
-        // 1. MOVIMENTA TAREFAS DE PENDENTES PARA PRONTOS (quando chega tempo de ingresso)
-        bool chegouNovaTarefa = false;
+        cout << "\n=== CICLO tempo=" << tempoAtual << " ===" << endl;
+        cout << "Estado: currentId=" << currentId 
+             << ", Prontos=" << prontos.size() 
+             << ", Pendentes=" << pendentes.size() 
+             << ", Bloqueadas=" << bloqueadas.size() << endl;
+        
+        // 1. MOVIMENTA TAREFAS DE PENDENTES PARA PRONTOS
         while (!pendentes.empty() && pendentes.front().ingresso <= tempoAtual)
         {
             Tarefa nova = pendentes.front();
             prontos.push_back(nova);
             pendentes.erase(pendentes.begin());
-            cout << ">>> T" << nova.id << " ingressou no sistema (t=" << tempoAtual << ")\n";
-            chegouNovaTarefa = true;
+            cout << ">>> T" << nova.id << " ingressou (t=" << tempoAtual << ")" << endl;
         }
 
-        // 2. APLICA ENVELHECIMENTO PARA PRIOPEnv 
+        // 2. APLICA ENVELHECIMENTO PARA PRIOPEnv
         if (algoritmo == "PRIOPEnv" && !prontos.empty())
         {
             aplicarEnvelhecimento(prontos, currentId);
         }
 
-        // 3. VERIFICA SE PRECISA PREEMPTAR TAREFA ATUAL
-        bool devePreemptar = false;
-        int preemptId = -1;
-        
-        if (currentId != -1 && !prontos.empty() && chegouNovaTarefa)
-        {
-            // Encontra a melhor tarefa segundo o algoritmo
-            int melhorIdx = escalonador(prontos);
-            if (melhorIdx >= 0 && melhorIdx < (int)prontos.size())
-            {
-                int melhorId = prontos[melhorIdx].id;
-                
-                // Se a melhor tarefa nao e a atual, precisa preemptar
-                if (melhorId != currentId)
-                {
-                    // Para SRTF: preempta se nova tarefa tem tempo restante menor
-                    if (algoritmo == "SRTF")
-                    {
-                        auto itAtual = find_if(prontos.begin(), prontos.end(),
-                                              [currentId](const Tarefa &t) { return t.id == currentId; });
-                        auto itMelhor = find_if(prontos.begin(), prontos.end(),
-                                               [melhorId](const Tarefa &t) { return t.id == melhorId; });
-                        
-                        if (itAtual != prontos.end() && itMelhor != prontos.end())
-                        {
-                            if (itMelhor->tempoRestante < itAtual->tempoRestante)
-                            {
-                                devePreemptar = true;
-                                preemptId = melhorId;
-                            }
-                        }
-                    }
-                    // Para PRIOP/PRIOPEnv: preempta se nova tarefa tem prioridade maior
-                    else if (algoritmo == "PRIOP" || algoritmo == "PRIOPEnv")
-                    {
-                        auto itAtual = find_if(prontos.begin(), prontos.end(),
-                                              [currentId](const Tarefa &t) { return t.id == currentId; });
-                        auto itMelhor = find_if(prontos.begin(), prontos.end(),
-                                               [melhorId](const Tarefa &t) { return t.id == melhorId; });
-                        
-                        if (itAtual != prontos.end() && itMelhor != prontos.end())
-                        {
-                            double prioridadeAtual, prioridadeMelhor;
-                            
-                            if (algoritmo == "PRIOPEnv")
-                            {
-                                prioridadeAtual = itAtual->prioridadeDinamica;
-                                prioridadeMelhor = itMelhor->prioridadeDinamica;
-                            }
-                            else
-                            {
-                                prioridadeAtual = itAtual->prioridade;
-                                prioridadeMelhor = itMelhor->prioridade;
-                            }
-                            
-                            if (prioridadeMelhor > prioridadeAtual)
-                            {
-                                devePreemptar = true;
-                                preemptId = melhorId;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. PROCESSAMENTO DE TAREFAS BLOQUEADAS (E/S)
+        // 3. PROCESSAMENTO DE TAREFAS BLOQUEADAS (E/S)
+        vector<Tarefa> paraDesbloquear;
         for (auto it = bloqueadas.begin(); it != bloqueadas.end();)
         {
             if (it->remainingIO > 0)
             {
                 it->remainingIO--;
+                cout << ">>> T" << it->id << " em E/S, restam " << it->remainingIO << endl;
                 if (it->remainingIO == 0)
                 {
-                    cout << ">>> T" << it->id << " concluiu E/S e voltou para pronta (t=" << tempoAtual << ")\n";
+                    cout << ">>> T" << it->id << " concluiu E/S" << endl;
                     Tarefa desbloqueada = *it;
                     desbloqueada.bloqueada = false;
-                    prontos.push_back(desbloqueada);
+                    // Resetar prioridade dinâmica ao voltar para prontos
+                    desbloqueada.prioridadeDinamica = desbloqueada.prioridade;
+                    paraDesbloquear.push_back(desbloqueada);
                     it = bloqueadas.erase(it);
-                    
-                    // Tarefa que voltou da E/S pode causar preempcao
-                    if (currentId != -1)
-                    {
-                        int melhorIdx = escalonador(prontos);
-                        if (melhorIdx >= 0 && melhorIdx < (int)prontos.size())
-                        {
-                            int melhorId = prontos[melhorIdx].id;
-                            if (melhorId != currentId)
-                            {
-                                // Lógica similar à anterior para verificar preempcao
-                                auto itAtual = find_if(prontos.begin(), prontos.end(),
-                                                      [currentId](const Tarefa &t) { return t.id == currentId; });
-                                auto itMelhor = find_if(prontos.begin(), prontos.end(),
-                                                       [melhorId](const Tarefa &t) { return t.id == melhorId; });
-                                
-                                if (itAtual != prontos.end() && itMelhor != prontos.end())
-                                {
-                                    bool preemptar = false;
-                                    
-                                    if (algoritmo == "SRTF")
-                                    {
-                                        if (itMelhor->tempoRestante < itAtual->tempoRestante)
-                                            preemptar = true;
-                                    }
-                                    else if (algoritmo == "PRIOP" || algoritmo == "PRIOPEnv")
-                                    {
-                                        double pAtual, pMelhor;
-                                        if (algoritmo == "PRIOPEnv")
-                                        {
-                                            pAtual = itAtual->prioridadeDinamica;
-                                            pMelhor = itMelhor->prioridadeDinamica;
-                                        }
-                                        else
-                                        {
-                                            pAtual = itAtual->prioridade;
-                                            pMelhor = itMelhor->prioridade;
-                                        }
-                                        
-                                        if (pMelhor > pAtual)
-                                            preemptar = true;
-                                    }
-                                    
-                                    if (preemptar)
-                                    {
-                                        devePreemptar = true;
-                                        preemptId = melhorId;
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
                 else
                 {
@@ -665,94 +662,80 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 ++it; // Tarefa bloqueada por mutex
             }
         }
-
-        // 5. SE PRECISA PREEMPTAR, FAZ A PREEMPcaO
-        if (devePreemptar && preemptId != -1)
-        {
-            cout << ">>> PREEMPcaO: T" << currentId << " -> T" << preemptId 
-                 << " (t=" << tempoAtual << ")\n";
-            
-            // A tarefa atual nao executou neste tempo ainda
-            // Entao apenas troca a tarefa atual
-            currentId = preemptId;
-            quantumCounter = quantum; // Reseta quantum para nova tarefa
-            
-            // Se for PRIOPEnv, reseta prioridade da tarefa que comeca a executar
-            if (algoritmo == "PRIOPEnv")
-            {
-                auto itNova = find_if(prontos.begin(), prontos.end(),
-                                     [preemptId](const Tarefa &t) { return t.id == preemptId; });
-                if (itNova != prontos.end())
-                {
-                    itNova->prioridadeDinamica = itNova->prioridade;
-                }
-            }
+        
+        // Adiciona tarefas desbloqueadas de volta
+        for (auto& t : paraDesbloquear) {
+            prontos.push_back(t);
         }
 
-        // 6. SE NaO HA TAREFA EXECUTANDO, ESCOLHE UMA NOVA
+        // 4. VERIFICA SE HÁ TAREFAS PARA EXECUTAR
         if (currentId == -1 && !prontos.empty())
         {
             int idx = escalonador(prontos);
             if (idx >= 0 && idx < (int)prontos.size())
             {
                 currentId = prontos[idx].id;
-                quantumCounter = quantum; // Reseta quantum
-                cout << ">>> Escalonador escolheu T" << currentId 
-                     << " para executar (t=" << tempoAtual << ")\n";
+                quantumCounter = quantum;
+                cout << ">>> Escalonador escolheu T" << currentId << " (idx=" << idx << ")" << endl;
                 
-                // Se for PRIOPEnv, reseta prioridade da tarefa que comeca
                 if (algoritmo == "PRIOPEnv")
                 {
+                    // Ao iniciar execução, garante que prioridade dinâmica seja a base
                     prontos[idx].prioridadeDinamica = prontos[idx].prioridade;
                 }
             }
+            else if (prontos.empty())
+            {
+                cout << ">>> AVISO: Escalonador retornou -1 mas há " << prontos.size() << " tarefas prontas!" << endl;
+            }
         }
 
-        // 7. VERIFICA FIM DA SIMULAcaO
+        // 5. VERIFICA FIM DA SIMULAÇÃO
         bool todasConcluidas = (currentId == -1 && prontos.empty() && 
                                pendentes.empty() && bloqueadas.empty());
         if (todasConcluidas)
         {
-            cout << "\n=== SIMULAcaO CONCLUiDA no tempo " << tempoAtual << " ===\n";
+            cout << "\n=== FIM DA SIMULAÇÃO no tempo " << tempoAtual << " ===" << endl;
             break;
         }
 
-        // 8. CPU OCIOSA (nenhuma tarefa para executar)
+        // 6. SE NÃO HÁ TAREFA PARA EXECUTAR, AVANÇA O TEMPO
         if (currentId == -1)
         {
-            running_task.push_back(-1); // -1 indica CPU ociosa
-            cout << ">>> CPU ociosa (t=" << tempoAtual << ")\n";
+            cout << ">>> CPU ociosa (t=" << tempoAtual << ")" << endl;
+            cout << "   Prontos: ";
+            for (const auto& t : prontos) cout << "T" << t.id << " ";
+            cout << endl;
+            cout << "   Bloqueadas: ";
+            for (const auto& t : bloqueadas) cout << "T" << t.id << " ";
+            cout << endl;
+            cout << "   Pendentes: ";
+            for (const auto& t : pendentes) cout << "T" << t.id << "(" << t.ingresso << ") ";
+            cout << endl;
             
-            // AVANcA TEMPO
+            running_task.push_back(-1);
             tempoAtual++;
             
-            // MODO PASSO-A-PASSO
             if (modoPasso)
             {
-                // Exibe estado atual
                 print_gantt(tarefasOriginais, running_task, tempoAtual);
                 print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
-                
-                cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
-                string input;
-                getline(cin, input);
-                
-                if (input == "c" || input == "C") {
-                    modoPasso = false;
-                    cout << ">>> Continuando em modo completo...\n";
-                }
+                cout << "Pressione Enter...";
+                cin.get();
             }
             continue;
         }
 
-        // 9. LOCALIZA TAREFA ATUAL NA LISTA DE PRONTOS
+        // 7. ENCONTRA TAREFA ATUAL
         auto itTarefa = find_if(prontos.begin(), prontos.end(),
-                               [currentId](const Tarefa &t)
-                               { return t.id == currentId; });
+                               [currentId](const Tarefa &t) { return t.id == currentId; });
         
         if (itTarefa == prontos.end())
         {
-            // Tarefa nao encontrada
+            cout << ">>> ERRO: T" << currentId << " não encontrada em prontos!" << endl;
+            cout << "   Tarefas em prontos: ";
+            for (const auto& t : prontos) cout << "T" << t.id << " ";
+            cout << endl;
             currentId = -1;
             quantumCounter = quantum;
             continue;
@@ -760,15 +743,15 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         
         Tarefa &tarefa = *itTarefa;
 
-        // 10. REGISTRA TEMPO DE ESPERA 
+        // 8. REGISTRA ESPERA (primeira execução)
         if (tarefa.tempoRestante == tarefa.duracao)
         {
             esperaTotal += tempoAtual - tarefa.ingresso;
         }
 
-        // 11. EXECUTA 1 UNIDADE DE TEMPO DA TAREFA
-        cout << ">>> T" << tarefa.id << " executando (t=" << tempoAtual 
-             << ", restam=" << tarefa.tempoRestante - 1 << ")\n";
+        // 9. EXECUTA 1 UNIDADE
+        cout << ">>> Executando T" << tarefa.id << " (restam " << tarefa.tempoRestante - 1 
+             << ", executado=" << tarefa.tempoExecutado << ")" << endl;
         
         tarefa.tempoRestante--;
         tarefa.tempoExecutado++;
@@ -776,184 +759,167 @@ void simulador(vector<Tarefa> &tarefasOriginais)
         fatias.push_back({tarefa.id, tempoAtual, tempoAtual + 1, 1});
         quantumCounter--;
 
-        // 12. VERIFICA EVENTOS DE E/S 
-        bool processouEvento = false;
+        // 10. VERIFICA EVENTOS
+        bool bloqueouPorIO = false;
+        bool bloqueouPorMutex = false;
+        int tarefaId = tarefa.id;
         
-        // 12.1 Eventos de E/S
+        // 10.1 Eventos de E/S
         for (auto itIO = tarefa.eventosIO.begin(); itIO != tarefa.eventosIO.end();)
         {
             if (itIO->first == tarefa.tempoExecutado)
             {
-                cout << ">>> T" << tarefa.id << " solicitou E/S por " 
-                     << itIO->second << " unidades (t=" << tempoAtual << ")\n";
+                cout << ">>> T" << tarefa.id << " inicia E/S por " << itIO->second << " unidades" << endl;
                 
-                // Cria cópia da tarefa para lista de bloqueadas
+                // Remover evento da tarefa original antes de copiar
+                auto evento = *itIO;
+                tarefa.eventosIO.erase(itIO);
+
                 Tarefa tarefaBloqueada = tarefa;
                 tarefaBloqueada.bloqueada = true;
-                tarefaBloqueada.remainingIO = itIO->second;
-                
-                // Remove evento processado
-                tarefaBloqueada.eventosIO.erase(
-                    tarefaBloqueada.eventosIO.begin() + (itIO - tarefa.eventosIO.begin()));
-                
-                // Move para bloqueadas
+                tarefaBloqueada.remainingIO = evento.second;
+
+                // Adiciona às bloqueadas
                 bloqueadas.push_back(tarefaBloqueada);
                 
-                // Remove de prontos
-                prontos.erase(itTarefa);
-                
-                currentId = -1;
-                quantumCounter = quantum;
-                processouEvento = true;
+                // Marca para remover
+                bloqueouPorIO = true;
                 break;
             }
-            ++itIO;
+            else
+            {
+                ++itIO;
+            }
         }
         
-        if (processouEvento)
+        // 10.2 Eventos de Mutex (só se não bloqueou por E/S)
+        if (!bloqueouPorIO)
         {
-            tempoAtual++;
-            
-            if (modoPasso)
+            for (auto itMutex = tarefa.eventosMutex.begin(); itMutex != tarefa.eventosMutex.end();)
             {
-                print_gantt(tarefasOriginais, running_task, tempoAtual);
-                print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
-                
-                cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
-                string input;
-                getline(cin, input);
-                
-                if (input == "c" || input == "C") {
-                    modoPasso = false;
-                }
-            }
-            continue;
-        }
+                if (itMutex->first == tarefa.tempoExecutado)
+                {
+                    int mutexId = itMutex->second.second;
+                    char op = itMutex->second.first;
+                    
+                    cout << ">>> T" << tarefa.id << " evento MUTEX " << op << " para M" << mutexId << endl;
+                    
+                    if (op == 'L') // LOCK
+                    {
+                        // Remova o evento da tarefa original primeiro para evitar que a cópia da bloqueada mantenha o evento
+                        auto evento = *itMutex;
+                        tarefa.eventosMutex.erase(itMutex);
 
-        // 12.2 Eventos de Mutex 
-        for (auto itMutex = tarefa.eventosMutex.begin(); itMutex != tarefa.eventosMutex.end();)
-        {
-            if (itMutex->first == tarefa.tempoExecutado)
-            {
-                int mutexId = itMutex->second.second;
-                char operacao = itMutex->second.first; // 'L' ou 'U'
-                
-                if (operacao == 'L')
-                {
-                    if (mutexes[mutexId].dono == -1)
-                    {
-                        // Mutex livre, atribui à tarefa
-                        mutexes[mutexId].dono = tarefa.id;
-                        cout << ">>> T" << tarefa.id << " adquiriu M" 
-                             << mutexId << " (t=" << tempoAtual << ")\n";
-                    }
-                    else
-                    {
-                        // Mutex ocupado, bloqueia tarefa
-                        cout << ">>> T" << tarefa.id << " bloqueou no M" 
-                             << mutexId << " (t=" << tempoAtual << ")\n";
-                        
-                        Tarefa tarefaBloqueada = tarefa;
-                        tarefaBloqueada.bloqueada = true;
-                        mutexes[mutexId].filaEspera.push_back(tarefa.id);
-                        
-                        bloqueadas.push_back(tarefaBloqueada);
-                        prontos.erase(itTarefa);
-                        currentId = -1;
-                        quantumCounter = quantum;
-                        processouEvento = true;
-                    }
-                }
-                else if (operacao == 'U') 
-                {
-                    if (mutexes[mutexId].dono == tarefa.id)
-                    {
-                        cout << ">>> T" << tarefa.id << " liberou M" 
-                             << mutexId << " (t=" << tempoAtual << ")\n";
-                        
-                        mutexes[mutexId].dono = -1;
-                        
-                        // Verifica se hA tarefas esperando
-                        if (!mutexes[mutexId].filaEspera.empty())
+                        if (mutexes[mutexId].dono == -1)
                         {
-                            int proxId = mutexes[mutexId].filaEspera.front();
-                            mutexes[mutexId].filaEspera.erase(
-                                mutexes[mutexId].filaEspera.begin());
-                            mutexes[mutexId].dono = proxId;
+                            mutexes[mutexId].dono = tarefa.id;
+                            cout << ">>> T" << tarefa.id << " adquiriu M" << mutexId << endl;
+                        }
+                        else
+                        {
+                            cout << ">>> T" << tarefa.id << " bloqueou no M" << mutexId 
+                                 << " (dono=T" << mutexes[mutexId].dono << ")" << endl;
                             
-                            // Desbloqueia a tarefa
-                            auto itBloqueada = find_if(bloqueadas.begin(), bloqueadas.end(),
-                                                      [proxId](const Tarefa &t)
-                                                      { return t.id == proxId; });
-                            if (itBloqueada != bloqueadas.end())
+                            Tarefa tarefaBloqueada = tarefa;
+                            tarefaBloqueada.bloqueada = true;
+
+                            // garante que não insere duplicado na fila de espera
+                            if (find(mutexes[mutexId].filaEspera.begin(), mutexes[mutexId].filaEspera.end(), tarefa.id) == mutexes[mutexId].filaEspera.end())
+                                mutexes[mutexId].filaEspera.push_back(tarefa.id);
+
+                            bloqueadas.push_back(tarefaBloqueada);
+                            bloqueouPorMutex = true;
+                        }
+                    }
+                    else if (op == 'U') // UNLOCK
+                    {
+                        // Remova o evento da tarefa original primeiro
+                        auto evento = *itMutex;
+                        tarefa.eventosMutex.erase(itMutex);
+
+                        if (mutexes[mutexId].dono == tarefa.id)
+                        {
+                            cout << ">>> T" << tarefa.id << " liberou M" << mutexId << endl;
+                            mutexes[mutexId].dono = -1;
+                            
+                            if (!mutexes[mutexId].filaEspera.empty())
                             {
-                                itBloqueada->bloqueada = false;
-                                prontos.push_back(*itBloqueada);
-                                bloqueadas.erase(itBloqueada);
-                                cout << ">>> T" << proxId << " desbloqueada e adquiriu M" 
-                                     << mutexId << "\n";
+                                int proxId = mutexes[mutexId].filaEspera.front();
+                                mutexes[mutexId].filaEspera.erase(mutexes[mutexId].filaEspera.begin());
+                                mutexes[mutexId].dono = proxId;
+                                
+                                auto itBloq = find_if(bloqueadas.begin(), bloqueadas.end(),
+                                                    [proxId](const Tarefa &t) { return t.id == proxId; });
+                                if (itBloq != bloqueadas.end())
+                                {
+                                    itBloq->bloqueada = false;
+                                    // Resetar prioridade dinâmica ao voltar para prontos
+                                    itBloq->prioridadeDinamica = itBloq->prioridade;
+                                    prontos.push_back(*itBloq);
+                                    bloqueadas.erase(itBloq);
+                                    cout << ">>> T" << proxId << " desbloqueada" << endl;
+                                }
                             }
                         }
                     }
+                    break;
                 }
-                
-                // Remove evento processado
-                tarefa.eventosMutex.erase(itMutex);
-                processouEvento = true;
-                break;
-            }
-            ++itMutex;
-        }
-        
-        if (processouEvento)
-        {
-            tempoAtual++;
-            
-            if (modoPasso)
-            {
-                print_gantt(tarefasOriginais, running_task, tempoAtual);
-                print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
-                
-                cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
-                string input;
-                getline(cin, input);
-                
-                if (input == "c" || input == "C") {
-                    modoPasso = false;
+                else
+                {
+                    ++itMutex;
                 }
             }
-            continue;
         }
 
-        // 13. VERIFICA SE TAREFA TERMINOU APÓS EXECUcaO
-        if (tarefa.tempoRestante <= 0)
+        // 11. REMOVE TAREFA SE BLOQUEOU
+        if (bloqueouPorIO || bloqueouPorMutex)
         {
-            retornoTotal += tempoAtual + 1 - tarefa.ingresso;
-            cout << ">>> T" << tarefa.id << " terminou execucao (t=" 
-                 << tempoAtual + 1 << ")\n";
+            prontos.erase(remove_if(prontos.begin(), prontos.end(),
+                [tarefaId](const Tarefa& t) { return t.id == tarefaId; }),
+                prontos.end());
             
-            prontos.erase(itTarefa);
             currentId = -1;
             quantumCounter = quantum;
         }
-        
-        // 15. AVANcA TEMPO
+        // 12. VERIFICA SE TERMINOU
+        else if (tarefa.tempoRestante <= 0)
+        {
+            retornoTotal += tempoAtual + 1 - tarefa.ingresso;
+            cout << ">>> T" << tarefa.id << " terminou" << endl;
+            
+            prontos.erase(remove_if(prontos.begin(), prontos.end(),
+                [tarefaId](const Tarefa& t) { return t.id == tarefaId; }),
+                prontos.end());
+            
+            currentId = -1;
+            quantumCounter = quantum;
+        }
+        // 13. VERIFICA QUANTUM
+        else if ((algoritmo == "RR" || algoritmo == "PRIOP" || algoritmo == "PRIOPEnv") && 
+                 quantumCounter <= 0)
+        {
+            cout << ">>> Quantum expirado para T" << tarefa.id << endl;
+            currentId = -1;
+            quantumCounter = quantum;
+        }
+
+        // 14. AVANÇA TEMPO
         tempoAtual++;
         
-        // 16. MODO PASSO-A-PASSO (após execucao normal)
-        if (modoPasso && !processouEvento)
+        if (modoPasso)
         {
             print_gantt(tarefasOriginais, running_task, tempoAtual);
             print_estado_sistema(prontos, pendentes, bloqueadas, tempoAtual, currentId);
-            
-            cout << "\nPressione Enter para continuar ou 'c' para modo completo... ";
-            string input;
-            getline(cin, input);
-            
-            if (input == "c" || input == "C") {
-                modoPasso = false;
-                cout << ">>> Continuando em modo completo...\n";
-            }
+            cout << "Pressione Enter...";
+            cin.get();
+        }
+        
+        // Limitar tempo máximo para evitar loop infinito
+        if (tempoAtual > 10000) {
+            cout << "\n>>> ERRO: Tempo máximo excedido (10000 unidades). Loop infinito detectado!" << endl;
+            cout << "   Prontos: " << prontos.size() << ", Bloqueadas: " << bloqueadas.size() 
+                 << ", Pendentes: " << pendentes.size() << endl;
+            break;
         }
     }
 
