@@ -726,7 +726,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             prontos.push_back(t);
         }
 
-        // Deadlock detection: se não há prontos nem pendentes, mas há bloqueadas sem IO, provavelmente há deadlock.
         if (currentId == -1 && prontos.empty() && pendentes.empty() && !bloqueadas.empty())
         {
             bool anyIO = false;
@@ -849,7 +848,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
 
         Tarefa &tarefa = *itTarefa;
 
-        // 8. REGISTRA ESPERA (primeira execução)
+        // 8. REGISTRA ESPERA 
         if (tarefa.tempoRestante == tarefa.duracao)
         {
             esperaTotal += tempoAtual - tarefa.ingresso;
@@ -898,7 +897,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             }
         }
 
-        // 10.2 Eventos de Mutex (só se não bloqueou por E/S)
+        // 10.2 Eventos de Mutex
         if (!bloqueouPorIO)
         {
             for (auto itMutex = tarefa.eventosMutex.begin(); itMutex != tarefa.eventosMutex.end();)
@@ -912,7 +911,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
 
                     if (op == 'L') // LOCK
                     {
-                        // Remova o evento da tarefa original primeiro para evitar que a cópia da bloqueada mantenha o evento
                         auto evento = *itMutex;
                         tarefa.eventosMutex.erase(itMutex);
 
@@ -929,7 +927,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                             Tarefa tarefaBloqueada = tarefa;
                             tarefaBloqueada.bloqueada = true;
 
-                            // garante que não insere duplicado na fila de espera
                             if (find(mutexes[mutexId].filaEspera.begin(), mutexes[mutexId].filaEspera.end(), tarefa.id) == mutexes[mutexId].filaEspera.end())
                                 mutexes[mutexId].filaEspera.push_back(tarefa.id);
 
@@ -939,7 +936,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                     }
                     else if (op == 'U') // UNLOCK
                     {
-                        // Remova o evento da tarefa original primeiro
                         auto evento = *itMutex;
                         tarefa.eventosMutex.erase(itMutex);
 
@@ -960,8 +956,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                                 if (itBloq != bloqueadas.end())
                                 {
                                     itBloq->bloqueada = false;
-                                    // Resetar prioridade dinâmica ao voltar para prontos
-                                    // Mantém prioridade dinâmica (não reseta completamente)
                                     itBloq->prioridadeDinamica = max(itBloq->prioridadeDinamica, static_cast<double>(itBloq->prioridade));
                                     prontos.push_back(*itBloq);
                                     bloqueadas.erase(itBloq);
