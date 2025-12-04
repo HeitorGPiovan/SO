@@ -702,9 +702,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                     cout << ">>> T" << it->id << " concluiu E/S" << endl;
                     Tarefa desbloqueada = *it;
                     desbloqueada.bloqueada = false;
-                    // Resetar prioridade dinâmica ao voltar para prontos
-                    // Mantém prioridade dinâmica (não reseta completamente)
-                    // Garante que seja pelo menos a prioridade base
                     desbloqueada.prioridadeDinamica = max(desbloqueada.prioridadeDinamica, static_cast<double>(desbloqueada.prioridade));
                     paraDesbloquear.push_back(desbloqueada);
                     it = bloqueadas.erase(it);
@@ -716,7 +713,7 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             }
             else
             {
-                ++it; // Tarefa bloqueada por mutex
+                ++it; 
             }
         }
 
@@ -876,7 +873,6 @@ void simulador(vector<Tarefa> &tarefasOriginais)
             {
                 cout << ">>> T" << tarefa.id << " inicia E/S por " << itIO->second << " unidades" << endl;
 
-                // Remover evento da tarefa original antes de copiar
                 auto evento = *itIO;
                 tarefa.eventosIO.erase(itIO);
 
@@ -884,10 +880,8 @@ void simulador(vector<Tarefa> &tarefasOriginais)
                 tarefaBloqueada.bloqueada = true;
                 tarefaBloqueada.remainingIO = evento.second;
 
-                // Adiciona às bloqueadas
                 bloqueadas.push_back(tarefaBloqueada);
 
-                // Marca para remover
                 bloqueouPorIO = true;
                 break;
             }
